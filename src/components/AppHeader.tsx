@@ -10,9 +10,10 @@ interface AppHeaderProps {
   showBack?: boolean;
   rightComponent?: React.ReactNode;
   hideNavActions?: boolean;
+  hideNotification?: boolean;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ title, showBack = false, rightComponent, hideNavActions = false }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ title, showBack = false, rightComponent, hideNavActions = false, hideNotification = false }) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -30,9 +31,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title, showBack = false, rightCom
         <View style={styles.rightComponentContainer}>
           {rightComponent ? rightComponent : !hideNavActions ? (
             <View style={styles.navActions}>
-              <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.iconButton}>
-                <Bell color={theme.colors.surface} size={24} />
-              </TouchableOpacity>
+              {!hideNotification && (
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.iconButton}>
+                  <Bell color={theme.colors.surface} size={24} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => navigation.navigate('ProfileTab')} style={styles.iconButton}>
                 <User color={theme.colors.surface} size={24} />
               </TouchableOpacity>

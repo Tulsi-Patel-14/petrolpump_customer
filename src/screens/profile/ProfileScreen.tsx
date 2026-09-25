@@ -1,162 +1,136 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import AppHeader from '../../components/AppHeader';
-import AppCard from '../../components/AppCard';
-import AppButton from '../../components/AppButton';
-import AppInput from '../../components/AppInput';
 import { theme } from '../../theme';
-import { User, LogOut, Settings, HelpCircle, Car, Edit2, Save, Camera } from 'lucide-react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { User, LogOut, Edit, Lock, ChevronRight, Award, Phone, Mail, Building2, CheckCircle2 } from 'lucide-react-native';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuthStore();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(user?.name || '');
-  const [editEmail, setEditEmail] = useState(user?.email || '');
-  const [editPhoto, setEditPhoto] = useState(user?.profilePhoto || null);
+  const navigation = useNavigation<any>();
 
   if (!user) return null;
 
-  const handleSave = () => {
-    // In NFP, just update local state visually (mock saving)
-    // Normally we would call a backend API here.
-    user.name = editName;
-    user.email = editEmail;
-    user.profilePhoto = editPhoto || undefined;
-    setIsEditing(false);
-    Alert.alert('Success', 'Profile updated successfully.');
-  };
-
-  const handleSelectPhoto = async () => {
-    try {
-      launchImageLibrary({ mediaType: 'photo', quality: 0.5 }, (response) => {
-        if (response.didCancel) {
-          return;
-        }
-        if (response.errorMessage) {
-          Alert.alert('Error', response.errorMessage);
-          return;
-        }
-        if (response.assets && response.assets.length > 0) {
-          const uri = response.assets[0].uri || null;
-          setEditPhoto(uri);
-          // Instantly update user profile
-          if (user) {
-            user.profilePhoto = uri || undefined;
-          }
-        }
-      });
-    } catch (error) {
-      Alert.alert(
-        'Rebuild Required', 
-        'It looks like the image picker module is not loaded. Please restart your Metro bundler and run "npm run android" again.'
-      );
-    }
-  };
 
   return (
     <View style={styles.container}>
       <AppHeader title="Profile" hideNavActions showBack />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.avatarLargeContainer}
-            onPress={handleSelectPhoto}
-          >
-            <View style={styles.avatarLarge}>
-              {(isEditing ? editPhoto : user.profilePhoto) ? (
-                <Image 
-                  source={{ uri: (isEditing ? editPhoto : user.profilePhoto) || '' }} 
-                  style={styles.profileImage} 
-                />
-              ) : (
-                <User color={theme.colors.surface} size={40} />
-              )}
+      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
+
+        {/* Header Profile Card */}
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <View style={styles.avatarLargeContainer}>
+              <View style={styles.avatarLarge}>
+                {user.profilePhoto ? (
+                  <Image source={{ uri: user.profilePhoto }} style={styles.profileImage} />
+                ) : (
+                  <User color={theme.colors.surface} size={40} />
+                )}
+              </View>
+              <View style={styles.avatarEditBadge}>
+                <CheckCircle2 color={theme.colors.success} size={20} fill={theme.colors.surface} />
+              </View>
             </View>
-            <View style={styles.avatarEditBadge}>
-              <Camera color={theme.colors.primary} size={16} />
+            <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
+
+            <View style={styles.badgeRow}>
+              <View style={styles.badgeDark}>
+                <Text style={styles.badgeDarkText}>CUSTOMER</Text>
+              </View>
+              <View style={styles.badgeOutline}>
+                <Text style={styles.badgeOutlineText}>ACTIVE</Text>
+              </View>
             </View>
-          </TouchableOpacity>
-          <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
-          <Text style={styles.idText}>Customer ID: {user.customerId}</Text>
+          </View>
         </View>
 
-        <AppCard style={styles.infoCard}>
+        {/* Info Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Customer Details & Identification</Text>
+          <View style={styles.divider} />
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Mobile</Text>
-            <Text style={styles.infoValue}>{user.mobile}</Text>
-          </View>
-          
-          {isEditing ? (
-            <View style={styles.editModeContainer}>
-              <AppInput
-                label="Full Name"
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Name"
-              />
-              <AppInput
-                label="Email Address"
-                value={editEmail}
-                onChangeText={setEditEmail}
-                placeholder="Email"
-                keyboardType="email-address"
-              />
+            <View style={styles.infoIconBox}>
+              <Award color={theme.colors.secondary} size={20} />
             </View>
-          ) : (
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Name</Text>
-                <Text style={styles.infoValue}>{user.name}</Text>
-              </View>
+            <View style={styles.infoTextCol}>
+              <Text style={styles.infoLabel}>CUSTOMER ID</Text>
+              <Text style={styles.infoValue}>{user.customerId}</Text>
+            </View>
+          </View>
 
-              <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{user.email || 'Not provided'}</Text>
-              </View>
-            </>
-          )}
-        </AppCard>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconBox}>
+              <Building2 color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.infoTextCol}>
+              <Text style={styles.infoLabel}>PREFERRED STATION</Text>
+              <Text style={styles.infoValue}>{user.preferredStationId === 'demo-station-001' ? 'Nayara Energy - Demo Station' : user.preferredStationId}</Text>
+            </View>
+          </View>
 
-        <AppCard style={styles.menuCard}>
-          {isEditing ? (
-            <TouchableOpacity style={styles.menuRow} onPress={handleSave}>
-              <View style={[styles.menuIconBox, { backgroundColor: theme.colors.secondary }]}>
-                <Save color={theme.colors.surface} size={20} />
-              </View>
-              <Text style={styles.menuRowText}>Save Profile</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.menuRow} onPress={() => setIsEditing(true)}>
-              <View style={styles.menuIconBox}>
-                <Edit2 color={theme.colors.secondary} size={20} />
-              </View>
-              <Text style={styles.menuRowText}>Edit Profile</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconBox}>
+              <Phone color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.infoTextCol}>
+              <Text style={styles.infoLabel}>MOBILE NUMBER</Text>
+              <Text style={styles.infoValue}>{user.mobile}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+            <View style={styles.infoIconBox}>
+              <Mail color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.infoTextCol}>
+              <Text style={styles.infoLabel}>EMAIL ADDRESS</Text>
+              <Text style={styles.infoValue}>{user.email || 'Not provided'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Menu Card */}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('EditProfile')}>
+            <View style={styles.menuIconBox}>
+              <Edit color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuRowTitle}>Edit Profile</Text>
+              <Text style={styles.menuRowSubtitle}>Update contact information & photo</Text>
+            </View>
+            <ChevronRight color={theme.colors.textLight} size={20} />
+          </TouchableOpacity>
 
           <View style={styles.menuDivider} />
 
-          <TouchableOpacity 
-            style={styles.menuRow} 
-            onPress={() => Alert.alert('Help & Support', 'Support contact details will be displayed here.')}
-          >
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('ChangePassword')}>
             <View style={styles.menuIconBox}>
-              <HelpCircle color={theme.colors.secondary} size={20} />
+              <Lock color={theme.colors.secondary} size={20} />
             </View>
-            <Text style={styles.menuRowText}>Help & Support</Text>
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuRowTitle}>Change Password</Text>
+              <Text style={styles.menuRowSubtitle}>Update your security credentials</Text>
+            </View>
+            <ChevronRight color={theme.colors.textLight} size={20} />
           </TouchableOpacity>
-          
+
           <View style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuRow} onPress={logout}>
             <View style={[styles.menuIconBox, { backgroundColor: `${theme.colors.error}15` }]}>
               <LogOut color={theme.colors.error} size={20} />
             </View>
-            <Text style={[styles.menuRowText, { color: theme.colors.error }]}>Logout</Text>
+            <View style={styles.menuTextCol}>
+              <Text style={[styles.menuRowTitle, { color: theme.colors.error }]}>Sign Out</Text>
+              <Text style={styles.menuRowSubtitle}>Disconnect session safely</Text>
+            </View>
+            <ChevronRight color={theme.colors.textLight} size={20} />
           </TouchableOpacity>
-        </AppCard>
+        </View>
       </ScrollView>
     </View>
   );
@@ -170,112 +144,164 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: theme.spacing.lg,
   },
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: theme.spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
+  },
   header: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
   },
   avatarLargeContainer: {
     position: 'relative',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   avatarLarge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: theme.colors.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#D1D9E6',
   },
   profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   avatarEditBadge: {
     position: 'absolute',
     bottom: 0,
-    right: 0,
+    right: -4,
     backgroundColor: theme.colors.surface,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
   },
   name: {
-    ...theme.typography.h2,
-    color: theme.colors.text,
-    flexShrink: 1,
+    ...theme.typography.h3,
+    color: theme.colors.primary,
+    marginBottom: 4,
   },
-  idText: {
-    ...theme.typography.body,
-    color: theme.colors.textLight,
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  infoCard: {
-    marginBottom: theme.spacing.xl,
-    padding: 0,
+  badgeDark: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  badgeDarkText: {
+    color: theme.colors.surface,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  badgeOutline: {
+    backgroundColor: '#E6F6ED',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.success,
+  },
+  badgeOutlineText: {
+    color: theme.colors.success,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  cardTitle: {
+    ...theme.typography.h3,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.md,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.lg,
   },
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
     alignItems: 'center',
+    marginBottom: theme.spacing.lg,
   },
-  infoLabel: {
-    ...theme.typography.body,
-    color: theme.colors.textLight,
-    width: 80,
-  },
-  infoValue: {
-    ...theme.typography.body,
-    color: theme.colors.text,
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'right',
-  },
-  inputContainer: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  editModeContainer: {
-    padding: theme.spacing.lg,
-    backgroundColor: '#FAFCFF', // slight background to distinguish edit mode
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  menuCard: {
-    padding: 0,
-    marginBottom: theme.spacing.xl,
-  },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.md,
-  },
-  menuIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `${theme.colors.secondary}15`, // Light secondary bg
+  infoIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F0F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
   },
-  menuRowText: {
-    ...theme.typography.body,
-    color: theme.colors.text,
-    fontWeight: '500',
+  infoTextCol: {
     flex: 1,
+  },
+  infoLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  infoValue: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  menuIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F0F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  menuTextCol: {
+    flex: 1,
+  },
+  menuRowTitle: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  menuRowSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
   },
   menuDivider: {
     height: 1,
     backgroundColor: theme.colors.border,
-    marginLeft: 70, // Align with text
+    marginVertical: theme.spacing.md,
   },
 });
 

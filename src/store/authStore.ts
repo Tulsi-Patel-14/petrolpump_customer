@@ -9,6 +9,7 @@ interface AuthState {
   login: (mobile: string, otp: string) => Promise<boolean>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
+  updateUser: (updates: Partial<Customer>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -32,5 +33,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (token) {
       set({ isAuthenticated: true, user: mockCustomer });
     }
+  },
+  updateUser: (updates) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updates } : null
+    }));
   },
 }));

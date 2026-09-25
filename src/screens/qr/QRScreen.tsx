@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, AppState, AppStateStatus } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useNavigation } from '@react-navigation/native';
 import { useCustomerStore } from '../../store/customerStore';
@@ -12,37 +12,44 @@ import AppButton from '../../components/AppButton';
 import LoadingScreen from '../../components/LoadingScreen';
 import { theme } from '../../theme';
 import { TemporaryQR } from '../../types/qr';
-import { MapPin, XCircle, CheckCircle2, AlertTriangle } from 'lucide-react-native';
+import { MapPin, XCircle, CheckCircle2, AlertTriangle, Building } from 'lucide-react-native';
+import { mockStations } from '../../mock/mockStations';
+import { Station } from '../../types/station';
 
-type LocationState = 'checking' | 'inside' | 'outside' | 'error' | 'denied';
+type LocationState = 'selecting' | 'checking' | 'inside' | 'outside' | 'error' | 'denied';
 
 const QRScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const { preferredStation } = useCustomerStore();
   
-  const [locationState, setLocationState] = useState<LocationState>('checking');
+  const [locationState, setLocationState] = useState<LocationState>('selecting');
+  const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [distance, setDistance] = useState<number>(0);
   const [qrData, setQrData] = useState<TemporaryQR | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
+  const [isExpired, setIsExpired] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const verifyLocationAndGenerateQR = useCallback(async () => {
-    if (!preferredStation || !user) return;
+  const handleSelectStation = async (station: Station) => {
+    if (!user) return;
     
+    setSelectedStation(station);
     setLocationState('checking');
     
     try {
-      const result = await locationService.checkStationGeofence(preferredStation);
+      const result = await locationService.checkStationGeofence(station);
       setDistance(result.distanceMeters);
       
       if (result.isInside) {
         setLocationState('inside');
         const newQR = qrService.generateTemporaryQR(user.customerId);
         setQrData(newQR);
+        setIsExpired(false);
       } else {
-        setLocationState('outside');
+        setLocationState('selecting');
         setQrData(null);
+        Alert.alert('Out of Geofence Area', 'You are out of the geofence area so you can not generate the QR.');
       }
     } catch (error: any) {
       if (error.message === 'LOCATION_PERMISSION_DENIED') {
@@ -53,12 +60,7 @@ const QRScreen = () => {
       }
       setQrData(null);
     }
-  }, [preferredStation, user]);
-
-  // Initial check when tab is focused
-  useEffect(() => {
-    verifyLocationAndGenerateQR();
-  }, [verifyLocationAndGenerateQR]);
+  };
 
   // Handle countdown and auto-refresh based on timestamp
   useEffect(() => {
@@ -72,13 +74,12 @@ const QRScreen = () => {
       
       if (remaining === 0) {
         clearInterval(interval);
-        // QR expired, re-validate location before generating new one
-        verifyLocationAndGenerateQR();
+        setIsExpired(true);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [qrData, locationState, verifyLocationAndGenerateQR]);
+  }, [qrData, locationState]);
 
   if (!preferredStation) {
     return <LoadingScreen message="Loading station data..." />;
@@ -90,6 +91,30 @@ const QRScreen = () => {
 
   const renderContent = () => {
     switch (locationState) {
+      case 'selecting':
+        return (
+          <View style={styles.centerContainer}>
+            <Text style={styles.qrTitle}>Select Petrol Pump</Text>
+            <Text style={styles.instructionText}>Please select a station to generate your QR code.</Text>
+            
+            <ScrollView style={{ width: '100%', marginTop: theme.spacing.lg }}>
+              {mockStations.map((station) => (
+                <TouchableOpacity 
+                  key={station.id} 
+                  style={styles.stationSelectCard}
+                  onPress={() => handleSelectStation(station)}
+                >
+                  <Building color={theme.colors.primary} size={24} style={{ marginRight: theme.spacing.md }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.stationSelectName}>{station.name}</Text>
+                    <Text style={styles.stationSelectDesc}>Tap to select</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        );
+
       case 'inside':
         return (
           <View style={styles.centerContainer}>
@@ -97,7 +122,7 @@ const QRScreen = () => {
               <CheckCircle2 color={theme.colors.success} size={24} />
               <View style={styles.statusTextContainer}>
                 <Text style={styles.statusTitle}>You're at the station</Text>
-                <Text style={styles.statusDesc}>{preferredStation.name} • {distance}m</Text>
+                <Text style={styles.statusDesc}>{selectedStation?.name} • {distance}m</Text>
               </View>
             </View>
 
@@ -105,7 +130,7 @@ const QRScreen = () => {
               <Text style={styles.qrTitle}>Your Fuel QR</Text>
               
               <View style={styles.qrWrapper}>
-                {qrData ? (
+                {qrData && !isExpired ? (
                   <QRCode
                     value={qrData.qrValue}
                     size={220}
@@ -113,15 +138,28 @@ const QRScreen = () => {
                     backgroundColor={theme.colors.surface}
                   />
                 ) : (
-                  <View style={[styles.qrWrapper, { width: 220, height: 220, backgroundColor: '#eee' }]} />
+                  <View style={[styles.qrWrapper, { width: 220, height: 220, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' }]}>
+                    {isExpired && (
+                      <Text style={{color: theme.colors.textLight, ...theme.typography.body}}>QR Expired</Text>
+                    )}
+                  </View>
                 )}
               </View>
 
               <View style={styles.timerContainer}>
-                <Text style={styles.timerLabel}>Expires in:</Text>
-                <Text style={[styles.timerValue, remainingSeconds <= 10 && styles.timerWarning]}>
-                  00:{remainingSeconds.toString().padStart(2, '0')}
-                </Text>
+                {isExpired ? (
+                    <AppButton 
+                      title="Regenerate QR" 
+                      onPress={() => selectedStation && handleSelectStation(selectedStation)}
+                    />
+                ) : (
+                  <>
+                    <Text style={styles.timerLabel}>Expires in:</Text>
+                    <Text style={[styles.timerValue, remainingSeconds <= 10 && styles.timerWarning]}>
+                      00:{remainingSeconds.toString().padStart(2, '0')}
+                    </Text>
+                  </>
+                )}
               </View>
             </AppCard>
             
@@ -154,7 +192,7 @@ const QRScreen = () => {
               
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Station</Text>
-                <Text style={styles.infoValue}>{preferredStation.name}</Text>
+                <Text style={styles.infoValue}>{selectedStation?.name}</Text>
               </View>
               
               <View style={styles.infoRow}>
@@ -166,13 +204,13 @@ const QRScreen = () => {
               
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.infoLabel}>Required Radius</Text>
-                <Text style={styles.infoValue}>{preferredStation.radiusMeters} m</Text>
+                <Text style={styles.infoValue}>{selectedStation?.radiusMeters} m</Text>
               </View>
             </AppCard>
 
             <AppButton 
               title="Check Location Again" 
-              onPress={verifyLocationAndGenerateQR} 
+              onPress={() => setLocationState('selecting')}  
               style={styles.actionButton}
             />
           </View>
@@ -188,7 +226,7 @@ const QRScreen = () => {
             </Text>
             <AppButton 
               title="Try Again" 
-              onPress={verifyLocationAndGenerateQR} 
+              onPress={() => setLocationState('selecting')}  
               style={styles.actionButton}
             />
           </View>
@@ -202,7 +240,7 @@ const QRScreen = () => {
             <Text style={styles.errorDesc}>{errorMessage}</Text>
             <AppButton 
               title="Try Again" 
-              onPress={verifyLocationAndGenerateQR} 
+              onPress={() => setLocationState('selecting')}  
               style={styles.actionButton}
             />
           </View>
@@ -212,7 +250,7 @@ const QRScreen = () => {
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Fuel QR" />
+      <AppHeader title="Fuel QR" hideNotification={true} />
       <View style={styles.content}>
         {renderContent()}
       </View>
@@ -363,6 +401,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: theme.spacing.xl,
     paddingHorizontal: theme.spacing.lg,
+  },
+  stationSelectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  stationSelectName: {
+    ...theme.typography.body,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  stationSelectDesc: {
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
   },
 });
 

@@ -5,7 +5,7 @@ import { useCustomerStore } from '../../store/customerStore';
 import { theme } from '../../theme';
 import { mockTransactions } from '../../mock/mockTransactions';
 import { useNavigation } from '@react-navigation/native';
-import { User, MapPin, QrCode, ArrowRight, History, Fuel, DollarSign, Edit3 } from 'lucide-react-native';
+import { User, MapPin, Scan, ArrowRight, History, Fuel, IndianRupee, Edit } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -19,8 +19,6 @@ const HomeScreen = () => {
   }, [loadStations]);
 
   if (!user) return null;
-
-  const recentTxn = mockTransactions[0];
 
   return (
     <View style={styles.container}>
@@ -38,10 +36,10 @@ const HomeScreen = () => {
                   )}
                 </View>
                 <View style={styles.editBadge}>
-                  <Edit3 color={theme.colors.primary} size={10} />
+                  <Edit color={theme.colors.primary} size={10} />
                 </View>
               </TouchableOpacity>
-              
+
               <View style={styles.headerInfo}>
                 <View style={styles.statusRow}>
                   <Text style={styles.statusText}>ACTIVE CUSTOMER</Text>
@@ -59,20 +57,20 @@ const HomeScreen = () => {
 
         {/* Overlapping QR Button */}
         <View style={styles.qrButtonWrapper}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.qrButtonCard}
             onPress={() => navigation.navigate('QRTab')}
             activeOpacity={0.9}
           >
             <View style={styles.qrIconBox}>
-              <QrCode color={theme.colors.primary} size={32} />
+              <Scan color="#0A2744" size={28} />
             </View>
             <View style={styles.qrTextContent}>
-              <Text style={styles.qrButtonTitle}>GENERATE FUEL QR</Text>
+              <Text style={styles.qrButtonTitle}>GENERATE QR</Text>
               <Text style={styles.qrButtonSubtitle}>Generate dynamic QR to authorize fueling</Text>
             </View>
             <View style={styles.qrArrowCircle}>
-              <ArrowRight color={theme.colors.primary} size={20} />
+              <ArrowRight color="#0A2744" size={20} />
             </View>
           </TouchableOpacity>
         </View>
@@ -80,37 +78,49 @@ const HomeScreen = () => {
         <View style={styles.contentPadding}>
           {/* Summary Section */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Summary</Text>
+            <Text style={styles.sectionTitle}>Monthly Summary</Text>
             <Text style={styles.sectionLink}>Overview</Text>
           </View>
 
           <View style={styles.statsRow}>
             {/* Stat Card 1 - Dark */}
-            <View style={[styles.statCard, styles.statCardDark]}>
+            <TouchableOpacity
+              style={[styles.statCard, styles.statCardDark]}
+              onPress={() => navigation.navigate('HistoryTab')}
+              activeOpacity={0.8}
+            >
               <View style={styles.statIconBadgeDark}>
-                <History color={theme.colors.secondary} size={16} />
+                <History color={theme.colors.secondary} size={14} />
               </View>
-              <Text style={styles.statValueDark}>{user.stats.totalVisits}</Text>
-              <Text style={styles.statLabelDark}>Visits</Text>
-            </View>
+              <Text style={styles.statValueDark} numberOfLines={1}>{user.stats.totalVisits}</Text>
+              <Text style={styles.statLabelDark} numberOfLines={1}>Visits</Text>
+            </TouchableOpacity>
 
             {/* Stat Card 2 - Light */}
-            <View style={[styles.statCard, styles.statCardLight]}>
+            <TouchableOpacity
+              style={[styles.statCard, styles.statCardLight]}
+              onPress={() => navigation.navigate('HistoryTab')}
+              activeOpacity={0.8}
+            >
               <View style={styles.statIconBadgeLight}>
-                <Fuel color={theme.colors.primary} size={16} />
+                <Fuel color={theme.colors.primary} size={14} />
               </View>
-              <Text style={styles.statValueLight}>{user.stats.totalFuelLiters}</Text>
-              <Text style={styles.statLabelLight}>Liters Fueled</Text>
-            </View>
+              <Text style={styles.statValueLight} numberOfLines={1}>{user.stats.totalFuelLiters}</Text>
+              <Text style={styles.statLabelLight} numberOfLines={1}>Liters Fueled</Text>
+            </TouchableOpacity>
 
             {/* Stat Card 3 - Accent */}
-            <View style={[styles.statCard, styles.statCardAccent]}>
+            <TouchableOpacity
+              style={[styles.statCard, styles.statCardAccent]}
+              onPress={() => navigation.navigate('HistoryTab')}
+              activeOpacity={0.8}
+            >
               <View style={styles.statIconBadgeAccent}>
-                <DollarSign color={theme.colors.surface} size={16} />
+                <IndianRupee color={theme.colors.primary} size={14} />
               </View>
-              <Text style={styles.statValueAccent}>₹{(user.stats.totalSpent / 1000).toFixed(1)}k</Text>
-              <Text style={styles.statLabelAccent}>Total Spent</Text>
-            </View>
+              <Text style={styles.statValueAccent} numberOfLines={1}>{(user.stats.totalSpent / 1000).toFixed(1)}k</Text>
+              <Text style={styles.statLabelAccent} numberOfLines={1}>Total Spent</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Recent Redemptions */}
@@ -121,44 +131,44 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {recentTxn ? (
-            <View style={styles.txnCard}>
-              <View style={[styles.txnHeaderRow, { width: '100%' }]}>
-                <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
-                  <Text style={styles.txnStationName} numberOfLines={2}>{recentTxn.stationName}</Text>
-                  <Text style={styles.txnTypeLabel}>{recentTxn.fuelType}</Text>
+          {mockTransactions.length > 0 ? (
+            mockTransactions.slice(0, 3).map((txn) => (
+              <View key={txn.id} style={styles.txnCard}>
+                <View style={[styles.txnHeaderRow, { width: '100%' }]}>
+                  <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
+                    <Text style={styles.txnStationName} numberOfLines={1}>{txn.stationName}</Text>
+                    <Text style={styles.txnTypeLabel}>{txn.fuelType}</Text>
+                  </View>
+                  <View style={[styles.txnStatusBadge, { flexShrink: 0 }]}>
+                    <Text style={styles.txnStatusText}>{txn.status.toUpperCase()}</Text>
+                  </View>
                 </View>
-                <View style={[styles.txnStatusBadge, { flexShrink: 0 }]}>
-                  <Text style={styles.txnStatusText}>COMPLETED</Text>
+
+                <View style={styles.txnDetailsBox}>
+                  <View style={styles.txnDetailCol}>
+                    <Text style={styles.txnDetailLabel}>Fuel Quantity</Text>
+                    <Text style={styles.txnDetailValue}>{txn.quantity} L</Text>
+                  </View>
+                  <View style={styles.txnDetailCol}>
+                    <Text style={styles.txnDetailLabel}>Fuel Type</Text>
+                    <Text style={styles.txnDetailValueHighlight}>{txn.fuelType}</Text>
+                  </View>
+                  <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
+                    <Text style={styles.txnDetailLabel}>Final Paid</Text>
+                    <Text style={styles.txnDetailTotal}>₹{txn.amount}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.txnFooter}>
+                  <Text style={styles.txnFooterDate}>🕒 {txn.date} • {txn.time}</Text>
+                  <Text style={styles.txnFooterId}>{txn.id} ›</Text>
                 </View>
               </View>
-
-              <View style={styles.txnDivider} />
-
-              <View style={styles.txnDetailsRow}>
-                <View style={styles.txnDetailCol}>
-                  <Text style={styles.txnDetailLabel}>Quantity</Text>
-                  <Text style={styles.txnDetailValue}>{recentTxn.quantity} L</Text>
-                </View>
-                <View style={styles.txnDetailCol}>
-                  <Text style={styles.txnDetailLabel}>Time</Text>
-                  <Text style={styles.txnDetailValueHighlight}>{recentTxn.time}</Text>
-                </View>
-                <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
-                  <Text style={styles.txnDetailLabel}>Final Paid</Text>
-                  <Text style={styles.txnDetailTotal}>₹{recentTxn.amount}</Text>
-                </View>
-              </View>
-
-              <View style={styles.txnFooter}>
-                <Text style={styles.txnFooterDate}>🕒 {recentTxn.date}</Text>
-                <Text style={styles.txnFooterId}>{recentTxn.id} ›</Text>
-              </View>
-            </View>
+            ))
           ) : (
             <Text style={styles.emptyText}>No recent transactions</Text>
           )}
-          
+
           {/* Spacer for bottom tab bar floating button */}
           <View style={{ height: 80 }} />
         </View>
@@ -193,32 +203,37 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.md,
   },
   avatar: {
-    width: 50, // Made smaller
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: theme.colors.tertiary,
     borderWidth: 2,
-    borderColor: theme.colors.secondary,
+    borderColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   profileImageSmall: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   editBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: theme.colors.surface,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    backgroundColor: theme.colors.secondary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: theme.colors.primary,
   },
   headerInfo: {
@@ -246,8 +261,9 @@ const styles = StyleSheet.create({
   nameText: {
     ...theme.typography.h1,
     color: theme.colors.surface,
-    fontSize: 20, // Slightly smaller text
-    marginBottom: 2,
+    fontSize: 22,
+    marginBottom: 4,
+    fontWeight: '800',
   },
   locationRow: {
     flexDirection: 'row',
@@ -260,54 +276,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   qrButtonWrapper: {
-    marginTop: -40, // Adjusted overlap to match the new padding
-    paddingHorizontal: theme.spacing.lg,
+    marginTop: -35, // Slightly adjusted overlap
+    paddingHorizontal: 12, // Reduced from lg to make it wider
     zIndex: 10,
   },
   qrButtonCard: {
-    backgroundColor: theme.colors.secondary,
-    borderRadius: 16,
+    backgroundColor: '#149AEB', // Bright vibrant blue from image
+    borderRadius: 16, // Slightly reduced radius for slimmer look
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    shadowColor: theme.colors.secondary,
+    padding: 14, // Reduced from 16, and removed paddingVertical: 20 to reduce height
+    shadowColor: '#149AEB',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowRadius: 15,
+    elevation: 10,
   },
   qrIconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   qrTextContent: {
     flex: 1,
   },
   qrButtonTitle: {
-    ...theme.typography.h3,
-    color: theme.colors.surface,
+    ...theme.typography.h2,
+    color: '#0A2744', // Dark blue text
     fontWeight: '800',
     marginBottom: 4,
   },
   qrButtonSubtitle: {
     ...theme.typography.caption,
-    color: theme.colors.surface,
-    opacity: 0.9,
+    color: '#0A2744',
+    opacity: 0.75, // Slightly faded dark blue
     lineHeight: 16,
+    paddingRight: 10,
   },
   qrArrowCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)', // Slightly lighter translucent circle
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 12,
+    marginLeft: 8,
   },
   contentPadding: {
     paddingHorizontal: theme.spacing.lg,
@@ -336,19 +353,20 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   statCard: {
     flex: 1,
-    borderRadius: 16,
-    padding: 16,
+    aspectRatio: 0.9,
+    borderRadius: 12,
+    padding: 12,
     justifyContent: 'center',
+    alignItems: 'flex-start',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-    minHeight: 110,
   },
   statCardDark: {
     backgroundColor: theme.colors.primary,
@@ -365,7 +383,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(0, 143, 197, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -383,48 +401,51 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: '#EBF6FC',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   statValueDark: {
-    ...theme.typography.h2,
+    ...theme.typography.amountLarge,
     color: theme.colors.surface,
     marginBottom: 4,
+    textAlign: 'left',
   },
   statLabelDark: {
     ...theme.typography.caption,
-    color: theme.colors.textLight,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'left',
   },
   statValueLight: {
-    ...theme.typography.h2,
-    color: theme.colors.text,
+    ...theme.typography.amountLarge,
+    color: theme.colors.primary,
     marginBottom: 4,
+    textAlign: 'left',
   },
   statLabelLight: {
     ...theme.typography.caption,
     color: theme.colors.textLight,
+    textAlign: 'left',
   },
   statValueAccent: {
-    ...theme.typography.h2,
-    color: theme.colors.secondary,
+    ...theme.typography.amountLarge,
+    color: theme.colors.primary,
     marginBottom: 4,
+    textAlign: 'left',
   },
   statLabelAccent: {
     ...theme.typography.caption,
     color: theme.colors.secondary,
+    textAlign: 'left',
   },
   txnCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    marginBottom: theme.spacing.md,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: '#E1E8EE',
   },
   txnHeaderRow: {
     flexDirection: 'row',
@@ -433,12 +454,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   txnStationName: {
-    ...theme.typography.h3,
+    ...theme.typography.h4,
     color: theme.colors.text,
     marginBottom: 4,
   },
   txnTypeLabel: {
-    ...theme.typography.bodySmall,
+    ...theme.typography.bodyMedium,
     color: theme.colors.secondary,
   },
   txnStatusBadge: {
@@ -453,14 +474,12 @@ const styles = StyleSheet.create({
     color: theme.colors.success,
     fontSize: 10,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
-  txnDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    borderStyle: 'dashed',
-    marginBottom: 12,
-  },
-  txnDetailsRow: {
+  txnDetailsBox: {
+    backgroundColor: '#F4F7F9',
+    borderRadius: 12,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
@@ -469,23 +488,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   txnDetailLabel: {
-    ...theme.typography.caption,
+    ...theme.typography.captionSmall,
     color: theme.colors.textLight,
     marginBottom: 4,
   },
   txnDetailValue: {
-    ...theme.typography.body,
-    fontWeight: '600',
+    ...theme.typography.bodyMedium,
     color: theme.colors.text,
   },
   txnDetailValueHighlight: {
-    ...theme.typography.body,
-    fontWeight: '600',
+    ...theme.typography.bodyMedium,
     color: theme.colors.secondary,
   },
   txnDetailTotal: {
-    ...theme.typography.h3,
-    color: theme.colors.text,
+    ...theme.typography.amountMedium,
+    color: theme.colors.secondary,
   },
   txnFooter: {
     flexDirection: 'row',
@@ -496,11 +513,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#F0F5F9',
   },
   txnFooterDate: {
-    ...theme.typography.caption,
+    ...theme.typography.captionSmall,
     color: theme.colors.textLight,
   },
   txnFooterId: {
-    ...theme.typography.caption,
+    ...theme.typography.captionSmall,
     color: theme.colors.textLight,
   },
   emptyText: {

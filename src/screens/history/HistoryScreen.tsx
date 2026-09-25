@@ -1,39 +1,60 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import AppHeader from '../../components/AppHeader';
 import AppCard from '../../components/AppCard';
 import StatusBadge from '../../components/StatusBadge';
 import { theme } from '../../theme';
 import { mockTransactions } from '../../mock/mockTransactions';
+import { Search } from 'lucide-react-native';
 
 const filters = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month'];
 
 const HistoryScreen = () => {
   const [activeFilter, setActiveFilter] = useState('All Time');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Basic mock filtering logic for demonstration
   const getFilteredTransactions = () => {
-    if (activeFilter === 'All Time') return mockTransactions;
-    if (activeFilter === 'Today') return mockTransactions.slice(0, 1);
-    if (activeFilter === 'Yesterday') return mockTransactions.slice(1, 2);
-    if (activeFilter === 'This Week') return mockTransactions.slice(0, 3);
-    if (activeFilter === 'This Month') return mockTransactions;
-    return mockTransactions;
+    let filtered = mockTransactions;
+    if (activeFilter === 'Today') filtered = mockTransactions.slice(0, 1);
+    else if (activeFilter === 'Yesterday') filtered = mockTransactions.slice(1, 2);
+    else if (activeFilter === 'This Week') filtered = mockTransactions.slice(0, 3);
+
+    if (searchQuery) {
+      filtered = filtered.filter(txn =>
+        txn.stationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        txn.fuelType.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
   };
 
   const filteredTxns = getFilteredTransactions();
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Fuel History" />
-      
+      <AppHeader title="Fuel History" hideNotification={true} />
+
+      <View style={styles.searchContainer}>
+        <Search color={theme.colors.textLight} size={20} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by station, ID..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor={theme.colors.textLight}
+        />
+      </View>
+
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
           {filters.map((filter) => {
             const isActive = activeFilter === filter;
             return (
-              <TouchableOpacity 
-                key={filter} 
+              <TouchableOpacity
+                key={filter}
                 style={[styles.filterChip, isActive && styles.filterChipActive]}
                 onPress={() => setActiveFilter(filter)}
               >
@@ -51,32 +72,37 @@ const HistoryScreen = () => {
           <Text style={styles.emptyText}>No transactions found for {activeFilter}</Text>
         ) : (
           filteredTxns.map((txn) => (
-            <AppCard key={txn.id} style={styles.card}>
-              <View style={styles.header}>
-                <Text style={styles.date}>{txn.date}</Text>
-                <StatusBadge status={txn.status} type={txn.status === 'Completed' ? 'success' : 'warning'} />
-              </View>
-              <Text style={styles.station} numberOfLines={1}>{txn.stationName}</Text>
-              
-              <View style={styles.detailsRow}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Fuel Type</Text>
-                  <Text style={styles.detailValue}>{txn.fuelType}</Text>
+            <View key={txn.id} style={styles.txnCard}>
+              <View style={[styles.txnHeaderRow, { width: '100%' }]}>
+                <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
+                  <Text style={styles.txnStationName} numberOfLines={1}>{txn.stationName}</Text>
+                  <Text style={styles.txnTypeLabel}>{txn.fuelType}</Text>
                 </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Quantity</Text>
-                  <Text style={styles.detailValue}>{txn.quantity} L</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Amount</Text>
-                  <Text style={styles.amountValue}>₹{txn.amount}</Text>
+                <View style={[styles.txnStatusBadge, { flexShrink: 0 }]}>
+                  <Text style={styles.txnStatusText}>{txn.status.toUpperCase()}</Text>
                 </View>
               </View>
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Vehicle: {txn.vehicleNumber || 'N/A'}</Text>
-                <Text style={styles.footerText}>{txn.time}</Text>
+
+              <View style={styles.txnDetailsBox}>
+                <View style={styles.txnDetailCol}>
+                  <Text style={styles.txnDetailLabel}>Fuel Quantity</Text>
+                  <Text style={styles.txnDetailValue}>{txn.quantity} L</Text>
+                </View>
+                <View style={styles.txnDetailCol}>
+                  <Text style={styles.txnDetailLabel}>Fuel Type</Text>
+                  <Text style={styles.txnDetailValueHighlight}>{txn.fuelType}</Text>
+                </View>
+                <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
+                  <Text style={styles.txnDetailLabel}>Final Paid</Text>
+                  <Text style={styles.txnDetailTotal}>₹{txn.amount}</Text>
+                </View>
               </View>
-            </AppCard>
+
+              <View style={styles.txnFooter}>
+                <Text style={styles.txnFooterDate}>🕒 {txn.date} • {txn.time}</Text>
+                <Text style={styles.txnFooterId}>{txn.id} ›</Text>
+              </View>
+            </View>
           ))
         )}
       </ScrollView>
@@ -92,58 +118,103 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: theme.spacing.lg,
   },
-  card: {
-    marginBottom: theme.spacing.md,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  header: {
+  searchInput: {
+    flex: 1,
+    marginLeft: theme.spacing.sm,
+    ...theme.typography.body,
+    color: theme.colors.text,
+  },
+  txnCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: '#E1E8EE',
+  },
+  txnHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  txnStationName: {
+    ...theme.typography.h4,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  txnTypeLabel: {
+    ...theme.typography.bodyMedium,
+    color: theme.colors.secondary,
+  },
+  txnStatusBadge: {
+    backgroundColor: '#E6F6ED',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.success,
+  },
+  txnStatusText: {
+    color: theme.colors.success,
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  txnDetailsBox: {
+    backgroundColor: '#F4F7F9',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  txnDetailCol: {
+    flex: 1,
+  },
+  txnDetailLabel: {
+    ...theme.typography.captionSmall,
+    color: theme.colors.textLight,
+    marginBottom: 4,
+  },
+  txnDetailValue: {
+    ...theme.typography.bodyMedium,
+    color: theme.colors.text,
+  },
+  txnDetailValueHighlight: {
+    ...theme.typography.bodyMedium,
+    color: theme.colors.secondary,
+  },
+  txnDetailTotal: {
+    ...theme.typography.amountMedium,
+    color: theme.colors.secondary,
+  },
+  txnFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F5F9',
   },
-  date: {
-    ...theme.typography.bodySmall,
-    fontWeight: '600',
+  txnFooterDate: {
+    ...theme.typography.captionSmall,
     color: theme.colors.textLight,
   },
-  station: {
-    ...theme.typography.h3,
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.md,
-    flexShrink: 1,
-  },
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    marginBottom: theme.spacing.sm,
-  },
-  detailItem: {
-    flex: 1,
-  },
-  detailLabel: {
-    ...theme.typography.caption,
-    color: theme.colors.textLight,
-    marginBottom: 2,
-  },
-  detailValue: {
-    ...theme.typography.body,
-    color: theme.colors.text,
-    fontWeight: '500',
-  },
-  amountValue: {
-    ...theme.typography.body,
-    color: theme.colors.success,
-    fontWeight: '700',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  footerText: {
-    ...theme.typography.caption,
+  txnFooterId: {
+    ...theme.typography.captionSmall,
     color: theme.colors.textLight,
   },
   filterContainer: {
