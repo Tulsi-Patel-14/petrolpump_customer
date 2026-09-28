@@ -31,7 +31,7 @@ const LoginScreen = () => {
 
   return (
     <KeyboardAvoidingView 
-      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} 
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.contentContainer}>

@@ -8,8 +8,14 @@ LogBox.ignoreLogs([
   'Warning: Function components cannot be given refs.',
 ]);
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 function App(): React.JSX.Element {
-  return <RootNavigator />;
+  return (
+    <SafeAreaProvider>
+      <RootNavigator />
+    </SafeAreaProvider>
+  );
 }
 
 export default App;

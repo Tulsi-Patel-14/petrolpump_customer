@@ -7,11 +7,14 @@ import { theme } from '../../theme';
 import { mockTransactions } from '../../mock/mockTransactions';
 import { Search } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
 
 const filters = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month'];
 
 const HistoryScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('All Time');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -36,8 +39,8 @@ const HistoryScreen = () => {
   const filteredTxns = getFilteredTransactions();
 
   return (
-    <View style={styles.container}>
-      <AppHeader title="Fuel History" hideNotification={true} />
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <AppHeader title="Fuel History" showBack onBackPress={() => navigation.navigate('HomeTab')} hideNotification={true} />
 
       <View style={styles.searchContainer}>
         <Search color={theme.colors.textLight} size={20} />
@@ -69,7 +72,7 @@ const HistoryScreen = () => {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.xl + 60 }]}>
         {filteredTxns.length === 0 ? (
           <Text style={styles.emptyText}>No transactions found for {activeFilter}</Text>
         ) : (
@@ -91,17 +94,17 @@ const HistoryScreen = () => {
               </View>
 
               <View style={styles.txnDetailsBox}>
-                <View style={styles.txnDetailCol}>
-                  <Text style={styles.txnDetailLabel}>Fuel Quantity</Text>
-                  <Text style={styles.txnDetailValue}>{txn.quantity} L</Text>
+                <View style={[styles.txnDetailCol, { flex: 1.2 }]}>
+                  <Text style={styles.txnDetailLabel} numberOfLines={1}>Fuel Qty</Text>
+                  <Text style={styles.txnDetailValue} numberOfLines={1} adjustsFontSizeToFit>{txn.quantity.toLocaleString('en-IN')} L</Text>
                 </View>
-                <View style={styles.txnDetailCol}>
-                  <Text style={styles.txnDetailLabel}>Discount</Text>
-                  <Text style={styles.txnDetailValueHighlight}>₹{txn.discountAmount || 0}</Text>
+                <View style={[styles.txnDetailCol, { flex: 1, alignItems: 'center' }]}>
+                  <Text style={styles.txnDetailLabel} numberOfLines={1}>Discount</Text>
+                  <Text style={styles.txnDetailValueHighlight} numberOfLines={1} adjustsFontSizeToFit>{formatIndianCurrency(txn.discountAmount || 0)}</Text>
                 </View>
-                <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
-                  <Text style={styles.txnDetailLabel}>Final Paid</Text>
-                  <Text style={styles.txnDetailTotal}>₹{txn.amount}</Text>
+                <View style={[styles.txnDetailCol, { flex: 1.2, alignItems: 'flex-end' }]}>
+                  <Text style={styles.txnDetailLabel} numberOfLines={1}>Final Paid</Text>
+                  <Text style={styles.txnDetailTotal} numberOfLines={1} adjustsFontSizeToFit>{formatIndianCurrency(txn.amount)}</Text>
                 </View>
               </View>
 

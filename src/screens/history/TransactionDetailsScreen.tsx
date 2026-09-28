@@ -1,14 +1,19 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppHeader from '../../components/AppHeader';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { mockTransactions } from '../../mock/mockTransactions';
 import { theme } from '../../theme';
-import { Fuel, IndianRupee, MapPin } from 'lucide-react-native';
+import { Fuel, IndianRupee, MapPin, Download, Clock } from 'lucide-react-native';
+import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
+import AppButton from '../../components/AppButton';
 
 const TransactionDetailsScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const [isDownloading, setIsDownloading] = useState(false);
   const { transactionId } = route.params || {};
 
   const transaction = mockTransactions.find(t => t.id === transactionId);
@@ -16,7 +21,7 @@ const TransactionDetailsScreen = () => {
   if (!transaction) {
     return (
       <View style={styles.container}>
-        <AppHeader title="Transaction Details" showBack={true} />
+        <AppHeader title="Transaction Details" showBack={true} hideNavActions={true} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Transaction not found.</Text>
         </View>
@@ -29,85 +34,96 @@ const TransactionDetailsScreen = () => {
     : null;
 
   return (
-    <View style={styles.container}>
-      <AppHeader title="Transaction Details" showBack={true} />
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <AppHeader title="Transaction Details" showBack={true} hideNavActions={true} />
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
         
         {/* Header section with ID and Status */}
         <View style={styles.headerCard}>
-          <Text style={styles.idText}>{transaction.id}</Text>
-          <View style={[styles.statusBadge, { borderColor: transaction.status === 'Completed' ? theme.colors.success : theme.colors.secondary }]}>
-            <Text style={[styles.statusText, { color: transaction.status === 'Completed' ? theme.colors.success : theme.colors.secondary }]}>
-              {transaction.status.toUpperCase()}
-            </Text>
+          <View style={styles.receiptIdRow}>
+            <View>
+              <Text style={styles.receiptLabel}>RECEIPT ID</Text>
+              <Text style={styles.idText}>{transaction.id}</Text>
+            </View>
+            <View style={[styles.statusBadge, { borderColor: transaction.status === 'Completed' ? theme.colors.success : theme.colors.secondary }]}>
+              <Text style={[styles.statusText, { color: transaction.status === 'Completed' ? theme.colors.success : theme.colors.secondary }]}>
+                {transaction.status.toUpperCase()}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.dateText}>Recorded on</Text>
-          <Text style={styles.dateTimeText}>{transaction.date} • {transaction.time}</Text>
+          <View style={styles.headerDivider} />
+          <View style={styles.clockRow}>
+            <Clock color={theme.colors.textLight} size={14} />
+            <Text style={styles.clockText}>Recorded on {transaction.date}, {transaction.time}</Text>
+          </View>
         </View>
 
         {/* Fuel Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fuel Information</Text>
           <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Fuel Information</Text>
+            <View style={styles.divider} />
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Fuel Type</Text>
               <Text style={styles.infoValue}>{transaction.fuelType}</Text>
             </View>
-            <View style={styles.divider} />
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Fuel Quantity</Text>
-              <Text style={styles.infoValue}>{transaction.quantity} L</Text>
+              <Text style={styles.infoValue}>{transaction.quantity.toLocaleString('en-IN')} L</Text>
             </View>
             {fuelRate && (
-              <>
-                <View style={styles.divider} />
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Fuel Rate</Text>
-                  <Text style={styles.infoValue}>₹{fuelRate}/L</Text>
-                </View>
-              </>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Fuel Rate</Text>
+                <Text style={styles.infoValue}>₹{fuelRate}/L</Text>
+              </View>
             )}
           </View>
         </View>
 
         {/* Discount Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discount Details</Text>
           <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Discount Details</Text>
+            <View style={styles.divider} />
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Fuel Total</Text>
-              <Text style={styles.infoValue}>₹{transaction.fuelTotal || transaction.amount}</Text>
+              <Text style={styles.infoValue}>{formatIndianCurrency(transaction.fuelTotal || transaction.amount)}</Text>
             </View>
             {transaction.discountAmount !== undefined && transaction.discountAmount > 0 && (
-              <>
-                <View style={styles.divider} />
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Discount</Text>
-                  <Text style={styles.discountValue}>- ₹{transaction.discountAmount}</Text>
-                </View>
-              </>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Discount</Text>
+                <Text style={styles.discountValue}>- {formatIndianCurrency(transaction.discountAmount)}</Text>
+              </View>
             )}
             <View style={[styles.divider, styles.thickDivider]} />
-            <View style={styles.infoRow}>
-              <Text style={styles.finalLabel}>FINAL AMOUNT PAID</Text>
-              <Text style={styles.finalValue}>₹{transaction.amount}</Text>
+            <View style={styles.finalRow}>
+              <View style={styles.finalLeft}>
+                <Text style={styles.finalLabel}>FINAL AMOUNT PAID</Text>
+                <Text style={styles.finalSubText}>Verified & Settled</Text>
+              </View>
+              <Text style={styles.finalValue}>{formatIndianCurrency(transaction.amount)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Station Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Station Information</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.stationHeader}>
-              <MapPin color={theme.colors.primary} size={20} />
-              <Text style={styles.stationName}>{transaction.stationName}</Text>
-            </View>
-          </View>
+        {/* Download Button */}
+        <View style={styles.buttonContainer}>
+          <AppButton 
+            title="Download Receipt" 
+            loading={isDownloading}
+            onPress={() => {
+              setIsDownloading(true);
+              // Simulating a real download delay
+              setTimeout(() => {
+                setIsDownloading(false);
+                Alert.alert('Download Complete', `Receipt for ${transaction.id} has been saved to your device.`);
+              }, 1500);
+            }} 
+            style={styles.downloadButton}
+            icon={<Download color={theme.colors.surface} size={20} />}
+          />
         </View>
-        
-        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -133,8 +149,7 @@ const styles = StyleSheet.create({
   headerCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
+    padding: 20,
     marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -142,47 +157,65 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  receiptIdRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  receiptLabel: {
+    color: '#a0aebc',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '600',
+  },
   idText: {
-    ...theme.typography.h2,
-    color: theme.colors.primary,
-    marginBottom: 12,
+    color: '#003E5C',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   statusBadge: {
-    backgroundColor: '#E6F6ED',
+    backgroundColor: '#e3f3ec',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 20,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#43b378',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 0.5,
+    color: '#43b378',
   },
-  dateText: {
-    ...theme.typography.captionSmall,
-    color: theme.colors.textLight,
-    marginBottom: 4,
+  headerDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: 16,
   },
-  dateTimeText: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.text,
-    fontWeight: '600',
+  clockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clockText: {
+    color: '#a0aebc',
+    marginLeft: 6,
+    fontSize: 12,
   },
   section: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    ...theme.typography.h4,
-    color: theme.colors.textLight,
+  cardTitle: {
+    color: '#154b66',
     marginBottom: 12,
-    marginLeft: 4,
+    fontSize: 16,
+    fontWeight: '500',
   },
   infoCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -193,31 +226,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   infoLabel: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.textLight,
+    color: '#6e7a85',
+    fontSize: 14,
+    fontWeight: '400',
   },
   infoValue: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.text,
-    fontWeight: '600',
+    color: '#154b66',
+    fontWeight: '500',
+    fontSize: 15,
   },
   discountValue: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.success,
-    fontWeight: '600',
+    color: '#154b66',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  finalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  finalLeft: {
+    justifyContent: 'center',
   },
   finalLabel: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.primary,
-    fontWeight: 'bold',
+    color: '#6e7a85',
+    textTransform: 'uppercase',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  finalSubText: {
+    color: '#a0aebc',
+    fontSize: 11,
   },
   finalValue: {
-    ...theme.typography.amountMedium,
-    color: theme.colors.primary,
-    fontSize: 20,
+    color: '#002f45',
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   divider: {
     height: 1,
@@ -240,6 +289,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 12,
     flex: 1,
+  },
+  buttonContainer: {
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+  },
+  downloadButton: {
+    width: '100%',
   },
 });
 

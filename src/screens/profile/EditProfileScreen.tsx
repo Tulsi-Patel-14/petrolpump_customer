@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import AppHeader from '../../components/AppHeader';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { User, Camera } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -12,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 const EditProfileScreen = () => {
   const { user, updateUser } = useAuthStore();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   const [editName, setEditName] = useState(user?.name || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
@@ -55,14 +57,14 @@ const EditProfileScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <AppHeader title="Edit Profile" showBack hideNavActions />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.xl }]}>
           <View style={styles.card}>
             <View style={styles.header}>
               <TouchableOpacity

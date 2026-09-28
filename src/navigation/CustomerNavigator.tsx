@@ -11,11 +11,14 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
 import TransactionDetailsScreen from '../screens/history/TransactionDetailsScreen';
 import { theme } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const TabNavigator = () => {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -25,8 +28,8 @@ const TabNavigator = () => {
         tabBarStyle: {
           backgroundColor: theme.colors.primary, // Dark bottom bar
           borderTopColor: 'transparent',
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
           elevation: 10,
         },
@@ -46,7 +49,7 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: 'QR',
           tabBarIcon: ({ focused }) => (
-            <View style={[styles.floatingButton, focused && styles.floatingButtonActive]}>
+            <View style={[styles.floatingButton, focused && styles.floatingButtonActive, { bottom: insets.bottom > 0 ? 10 : 0 }]}>
               <QrCode color={theme.colors.surface} size={28} />
             </View>
           ),

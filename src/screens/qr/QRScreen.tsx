@@ -12,6 +12,7 @@ import AppButton from '../../components/AppButton';
 import LoadingScreen from '../../components/LoadingScreen';
 import { theme } from '../../theme';
 import { TemporaryQR } from '../../types/qr';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapPin, XCircle, CheckCircle2, AlertTriangle, Building } from 'lucide-react-native';
 import { mockStations } from '../../mock/mockStations';
 import { Station } from '../../types/station';
@@ -22,6 +23,7 @@ const QRScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const { preferredStation } = useCustomerStore();
+  const insets = useSafeAreaInsets();
   
   const [locationState, setLocationState] = useState<LocationState>('selecting');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
@@ -249,11 +251,13 @@ const QRScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <AppHeader title="Fuel QR" hideNotification={true} />
-      <View style={styles.content}>
-        {renderContent()}
-      </View>
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <AppHeader title="Fuel QR" showBack onBackPress={() => navigation.navigate('HomeTab')} hideNotification={true} />
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + theme.spacing.xl, flexGrow: 1 }} bounces={false}>
+        <View style={styles.content}>
+          {renderContent()}
+        </View>
+      </ScrollView>
     </View>
   );
 };

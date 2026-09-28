@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } fr
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import AppHeader from '../../components/AppHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { User, LogOut, Edit, Lock, ChevronRight, Award, Phone, Mail, Building2, CheckCircle2 } from 'lucide-react-native';
 
@@ -11,12 +12,13 @@ const ProfileScreen = () => {
   const navigation = useNavigation<any>();
 
   if (!user) return null;
+  const insets = useSafeAreaInsets();
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <AppHeader title="Profile" hideNavActions showBack />
-      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.xl }]} bounces={false}>
 
         {/* Header Profile Card */}
         <View style={styles.card}>

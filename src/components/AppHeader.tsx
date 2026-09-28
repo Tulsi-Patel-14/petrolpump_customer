@@ -8,12 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface AppHeaderProps {
   title: string;
   showBack?: boolean;
+  onBackPress?: () => void;
   rightComponent?: React.ReactNode;
   hideNavActions?: boolean;
   hideNotification?: boolean;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ title, showBack = false, rightComponent, hideNavActions = false, hideNotification = false }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ title, showBack = false, onBackPress, rightComponent, hideNavActions = false, hideNotification = false }) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -21,7 +22,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title, showBack = false, rightCom
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.innerContainer}>
         {showBack ? (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={onBackPress ? onBackPress : () => navigation.goBack()} style={styles.backButton}>
             <ArrowLeft color={theme.colors.surface} size={24} />
           </TouchableOpacity>
         ) : (

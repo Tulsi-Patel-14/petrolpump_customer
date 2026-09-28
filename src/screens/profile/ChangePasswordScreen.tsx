@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppHeader from '../../components/AppHeader';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
@@ -8,6 +9,7 @@ import { theme } from '../../theme';
 
 const ChangePasswordScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -36,11 +38,16 @@ const ChangePasswordScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <AppHeader title="Change Password" showBack hideNavActions />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        <View style={styles.formContainer}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.xl }]}>
+          
+          <View style={styles.formContainer}>
           <AppInput
             label="Current Password"
             value={currentPassword}
@@ -70,6 +77,7 @@ const ChangePasswordScreen = () => {
           style={styles.saveButton} 
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };

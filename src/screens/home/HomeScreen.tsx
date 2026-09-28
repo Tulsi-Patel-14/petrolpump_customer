@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCustomerStore } from '../../store/customerStore';
 import { theme } from '../../theme';
 import { mockTransactions } from '../../mock/mockTransactions';
 import { useNavigation } from '@react-navigation/native';
-import { User, MapPin, Scan, ArrowRight, History, Fuel, IndianRupee, Edit } from 'lucide-react-native';
+import { User, MapPin, QrCode, ArrowRight, History, Fuel, IndianRupee, Edit } from 'lucide-react-native';
+import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
 
 const { width } = Dimensions.get('window');
 
@@ -13,6 +15,7 @@ const HomeScreen = () => {
   const { user } = useAuthStore();
   const { loadStations } = useCustomerStore();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadStations();
@@ -53,13 +56,15 @@ const HomeScreen = () => {
   if (!user) return null;
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <ScrollView 
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]} 
+        bounces={false}
+      >
         {/* Top Header Section */}
-        <View style={styles.headerSection}>
-          <SafeAreaView>
-            <View style={styles.headerTopRow}>
-              <TouchableOpacity style={styles.profileAvatarContainer} onPress={() => navigation.navigate('ProfileTab')}>
+        <View style={[styles.headerSection, { paddingTop: insets.top + theme.spacing.md }]}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity style={styles.profileAvatarContainer} onPress={() => navigation.navigate('ProfileTab')}>
                 <View style={styles.avatar}>
                   {user.profilePhoto ? (
                     <Image source={{ uri: user.profilePhoto }} style={styles.profileImageSmall} />
@@ -84,7 +89,6 @@ const HomeScreen = () => {
                 </View>
               </View>
             </View>
-          </SafeAreaView>
         </View>
 
         {/* Overlapping QR Button */}
@@ -95,7 +99,7 @@ const HomeScreen = () => {
             activeOpacity={0.9}
           >
             <View style={styles.qrIconBox}>
-              <Scan color="#0A2744" size={28} />
+              <QrCode color="#0A2744" size={28} />
             </View>
             <View style={styles.qrTextContent}>
               <Text style={styles.qrButtonTitle}>GENERATE QR</Text>
@@ -136,7 +140,7 @@ const HomeScreen = () => {
               <View style={styles.statIconBadgeDark}>
                 <History color={theme.colors.secondary} size={14} />
               </View>
-              <Text style={styles.statValueDark} numberOfLines={1}>{totalVisits}</Text>
+              <Text style={styles.statValueDark} numberOfLines={1} adjustsFontSizeToFit>{formatNumberCompact(totalVisits)}</Text>
               <Text style={styles.statLabelDark} numberOfLines={1}>Visits</Text>
             </TouchableOpacity>
 
@@ -149,7 +153,7 @@ const HomeScreen = () => {
               <View style={styles.statIconBadgeLight}>
                 <Fuel color={theme.colors.primary} size={14} />
               </View>
-              <Text style={styles.statValueLight} numberOfLines={1}>{totalFuelLiters}</Text>
+              <Text style={styles.statValueLight} numberOfLines={1} adjustsFontSizeToFit>{formatNumberCompact(totalFuelLiters)} L</Text>
               <Text style={styles.statLabelLight} numberOfLines={1}>Liters Fueled</Text>
             </TouchableOpacity>
 
@@ -162,7 +166,7 @@ const HomeScreen = () => {
               <View style={styles.statIconBadgeAccent}>
                 <IndianRupee color={theme.colors.primary} size={14} />
               </View>
-              <Text style={styles.statValueAccent} numberOfLines={1}>₹{totalDiscount}</Text>
+              <Text style={styles.statValueAccent} numberOfLines={1} adjustsFontSizeToFit>{formatIndianCurrency(totalDiscount)}</Text>
               <Text style={styles.statLabelAccent} numberOfLines={1}>Total Discount</Text>
             </TouchableOpacity>
           </View>
@@ -194,17 +198,17 @@ const HomeScreen = () => {
                 </View>
 
                 <View style={styles.txnDetailsBox}>
-                  <View style={styles.txnDetailCol}>
-                    <Text style={styles.txnDetailLabel}>Fuel Quantity</Text>
-                    <Text style={styles.txnDetailValue}>{txn.quantity} L</Text>
+                  <View style={[styles.txnDetailCol, { flex: 1.2 }]}>
+                    <Text style={styles.txnDetailLabel} numberOfLines={1}>Fuel Qty</Text>
+                    <Text style={styles.txnDetailValue} numberOfLines={1} adjustsFontSizeToFit>{txn.quantity.toLocaleString('en-IN')} L</Text>
                   </View>
-                  <View style={styles.txnDetailCol}>
-                    <Text style={styles.txnDetailLabel}>Discount</Text>
-                    <Text style={styles.txnDetailValueHighlight}>₹{txn.discountAmount || 0}</Text>
+                  <View style={[styles.txnDetailCol, { flex: 1, alignItems: 'center' }]}>
+                    <Text style={styles.txnDetailLabel} numberOfLines={1}>Discount</Text>
+                    <Text style={styles.txnDetailValueHighlight} numberOfLines={1} adjustsFontSizeToFit>{formatIndianCurrency(txn.discountAmount || 0)}</Text>
                   </View>
-                  <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
-                    <Text style={styles.txnDetailLabel}>Final Paid</Text>
-                    <Text style={styles.txnDetailTotal}>₹{txn.amount}</Text>
+                  <View style={[styles.txnDetailCol, { flex: 1.2, alignItems: 'flex-end' }]}>
+                    <Text style={styles.txnDetailLabel} numberOfLines={1}>Final Paid</Text>
+                    <Text style={styles.txnDetailTotal} numberOfLines={1} adjustsFontSizeToFit>{formatIndianCurrency(txn.amount)}</Text>
                   </View>
                 </View>
 
@@ -217,9 +221,6 @@ const HomeScreen = () => {
           ) : (
             <Text style={styles.emptyText}>No recent transactions</Text>
           )}
-
-          {/* Spacer for bottom tab bar floating button */}
-          <View style={{ height: 80 }} />
         </View>
       </ScrollView>
     </View>
@@ -239,7 +240,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md, // Reduced padding to move up
     paddingBottom: 60, // Reduced bottom padding
   },
   headerTopRow: {
