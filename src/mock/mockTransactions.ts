@@ -9,10 +9,12 @@ export const mockTransactions: Transaction[] = [
     "time": "10:30 AM",
     "fuelType": "Petrol",
     "quantity": 21.9,
-    "amount": 2080,
+    "amount": 900,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "fuelTotal": 1000,
+    "discountAmount": 100
   },
   {
     "id": "TXN-90233",
@@ -25,7 +27,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 978,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 49,
+    "fuelTotal": 1027
   },
   {
     "id": "TXN-90232",
@@ -38,7 +42,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1406,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 70,
+    "fuelTotal": 1476
   },
   {
     "id": "TXN-90231",
@@ -51,7 +57,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1767,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 88,
+    "fuelTotal": 1855
   },
   {
     "id": "TXN-90230",
@@ -64,7 +72,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1121,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 56,
+    "fuelTotal": 1177
   },
   {
     "id": "TXN-90229",
@@ -77,7 +87,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2631,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 132,
+    "fuelTotal": 2763
   },
   {
     "id": "TXN-90228",
@@ -90,7 +102,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2071,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 104,
+    "fuelTotal": 2175
   },
   {
     "id": "TXN-90227",
@@ -103,7 +117,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1168,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 58,
+    "fuelTotal": 1226
   },
   {
     "id": "TXN-90226",
@@ -116,7 +132,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1064,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 53,
+    "fuelTotal": 1117
   },
   {
     "id": "TXN-90225",
@@ -129,7 +147,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2679,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 134,
+    "fuelTotal": 2813
   },
   {
     "id": "TXN-90224",
@@ -142,7 +162,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2831,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 142,
+    "fuelTotal": 2973
   },
   {
     "id": "TXN-90223",
@@ -155,7 +177,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2337,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 117,
+    "fuelTotal": 2454
   },
   {
     "id": "TXN-90222",
@@ -168,7 +192,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2337,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 117,
+    "fuelTotal": 2454
   },
   {
     "id": "TXN-90221",
@@ -181,7 +207,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2099,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 105,
+    "fuelTotal": 2204
   },
   {
     "id": "TXN-90220",
@@ -194,7 +222,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1178,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 59,
+    "fuelTotal": 1237
   },
   {
     "id": "TXN-90219",
@@ -207,7 +237,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2090,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 105,
+    "fuelTotal": 2195
   },
   {
     "id": "TXN-90218",
@@ -220,7 +252,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2821,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 141,
+    "fuelTotal": 2962
   },
   {
     "id": "TXN-90217",
@@ -233,7 +267,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1301,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 65,
+    "fuelTotal": 1366
   },
   {
     "id": "TXN-90216",
@@ -246,7 +282,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1121,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 56,
+    "fuelTotal": 1177
   },
   {
     "id": "TXN-90215",
@@ -259,7 +297,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2536,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 127,
+    "fuelTotal": 2663
   },
   {
     "id": "TXN-90214",
@@ -272,7 +312,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2755,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 138,
+    "fuelTotal": 2893
   },
   {
     "id": "TXN-90213",
@@ -285,7 +327,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 2460,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 123,
+    "fuelTotal": 2583
   },
   {
     "id": "TXN-90212",
@@ -298,7 +342,9 @@ export const mockTransactions: Transaction[] = [
     "amount": 1767,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 88,
+    "fuelTotal": 1855
   },
   {
     "id": "TXN-90211",
@@ -311,6 +357,8 @@ export const mockTransactions: Transaction[] = [
     "amount": 2755,
     "vehicleId": "veh-001",
     "vehicleNumber": "GJ01AB1234",
-    "status": "Completed"
+    "status": "Completed",
+    "discountAmount": 138,
+    "fuelTotal": 2893
   }
 ];

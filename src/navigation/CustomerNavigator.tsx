@@ -9,6 +9,7 @@ import HistoryScreen from '../screens/history/HistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
+import TransactionDetailsScreen from '../screens/history/TransactionDetailsScreen';
 import { theme } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -83,6 +84,7 @@ const CustomerNavigator = () => {
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <Stack.Screen name="TransactionDetails" component={TransactionDetailsScreen} />
     </Stack.Navigator>
   );
 };

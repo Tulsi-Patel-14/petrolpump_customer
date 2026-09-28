@@ -6,10 +6,12 @@ import StatusBadge from '../../components/StatusBadge';
 import { theme } from '../../theme';
 import { mockTransactions } from '../../mock/mockTransactions';
 import { Search } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const filters = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month'];
 
 const HistoryScreen = () => {
+  const navigation = useNavigation<any>();
   const [activeFilter, setActiveFilter] = useState('All Time');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -72,7 +74,12 @@ const HistoryScreen = () => {
           <Text style={styles.emptyText}>No transactions found for {activeFilter}</Text>
         ) : (
           filteredTxns.map((txn) => (
-            <View key={txn.id} style={styles.txnCard}>
+            <TouchableOpacity 
+              key={txn.id} 
+              style={styles.txnCard}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('TransactionDetails', { transactionId: txn.id })}
+            >
               <View style={[styles.txnHeaderRow, { width: '100%' }]}>
                 <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
                   <Text style={styles.txnStationName} numberOfLines={1}>{txn.stationName}</Text>
@@ -89,8 +96,8 @@ const HistoryScreen = () => {
                   <Text style={styles.txnDetailValue}>{txn.quantity} L</Text>
                 </View>
                 <View style={styles.txnDetailCol}>
-                  <Text style={styles.txnDetailLabel}>Fuel Type</Text>
-                  <Text style={styles.txnDetailValueHighlight}>{txn.fuelType}</Text>
+                  <Text style={styles.txnDetailLabel}>Discount</Text>
+                  <Text style={styles.txnDetailValueHighlight}>₹{txn.discountAmount || 0}</Text>
                 </View>
                 <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
                   <Text style={styles.txnDetailLabel}>Final Paid</Text>
@@ -102,7 +109,7 @@ const HistoryScreen = () => {
                 <Text style={styles.txnFooterDate}>🕒 {txn.date} • {txn.time}</Text>
                 <Text style={styles.txnFooterId}>{txn.id} ›</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>

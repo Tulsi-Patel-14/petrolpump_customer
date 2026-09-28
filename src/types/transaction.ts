@@ -6,7 +6,9 @@ export interface Transaction {
   time: string;
   fuelType: 'Petrol' | 'Diesel' | 'CNG';
   quantity: number; // in Liters/Kg
-  amount: number; // in local currency
+  fuelTotal?: number; // total before discount
+  discountAmount?: number; // discount applied
+  amount: number; // final amount paid
   vehicleId?: string;
   vehicleNumber?: string;
   workerId?: string;

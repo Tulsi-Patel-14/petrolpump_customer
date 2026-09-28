@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Image } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
 import { useCustomerStore } from '../../store/customerStore';
@@ -17,6 +17,38 @@ const HomeScreen = () => {
   useEffect(() => {
     loadStations();
   }, [loadStations]);
+
+  const [activeFilter, setActiveFilter] = useState<'Today' | 'This Month' | 'This Year'>('This Month');
+
+  const currentDay = new Date().toDateString();
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  let totalVisits = 0;
+  let totalFuelLiters = 0;
+  let totalDiscount = 0;
+
+  mockTransactions.forEach((txn) => {
+    const txnDate = new Date(txn.date);
+    let include = false;
+
+    if (activeFilter === 'Today') {
+      include = txnDate.toDateString() === currentDay;
+    } else if (activeFilter === 'This Month') {
+      include = txnDate.getMonth() === currentMonth && txnDate.getFullYear() === currentYear;
+    } else if (activeFilter === 'This Year') {
+      include = txnDate.getFullYear() === currentYear;
+    }
+
+    if (include) {
+      totalVisits += 1;
+      totalFuelLiters += txn.quantity;
+      totalDiscount += (txn.discountAmount || 0);
+    }
+  });
+
+  // Round liters to 1 decimal
+  totalFuelLiters = Math.round(totalFuelLiters * 10) / 10;
 
   if (!user) return null;
 
@@ -76,10 +108,22 @@ const HomeScreen = () => {
         </View>
 
         <View style={styles.contentPadding}>
-          {/* Summary Section */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Monthly Summary</Text>
-            <Text style={styles.sectionLink}>Overview</Text>
+          {/* Summary Section - Segmented Control */}
+          <View style={styles.filterContainer}>
+            {['Today', 'This Month', 'This Year'].map((filter) => {
+              const isActive = activeFilter === filter;
+              return (
+                <TouchableOpacity
+                  key={filter}
+                  style={[styles.filterButton, isActive && styles.filterButtonActive]}
+                  onPress={() => setActiveFilter(filter as any)}
+                >
+                  <Text style={[styles.filterButtonText, isActive && styles.filterButtonTextActive]}>
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <View style={styles.statsRow}>
@@ -92,7 +136,7 @@ const HomeScreen = () => {
               <View style={styles.statIconBadgeDark}>
                 <History color={theme.colors.secondary} size={14} />
               </View>
-              <Text style={styles.statValueDark} numberOfLines={1}>{user.stats.totalVisits}</Text>
+              <Text style={styles.statValueDark} numberOfLines={1}>{totalVisits}</Text>
               <Text style={styles.statLabelDark} numberOfLines={1}>Visits</Text>
             </TouchableOpacity>
 
@@ -105,7 +149,7 @@ const HomeScreen = () => {
               <View style={styles.statIconBadgeLight}>
                 <Fuel color={theme.colors.primary} size={14} />
               </View>
-              <Text style={styles.statValueLight} numberOfLines={1}>{user.stats.totalFuelLiters}</Text>
+              <Text style={styles.statValueLight} numberOfLines={1}>{totalFuelLiters}</Text>
               <Text style={styles.statLabelLight} numberOfLines={1}>Liters Fueled</Text>
             </TouchableOpacity>
 
@@ -118,8 +162,8 @@ const HomeScreen = () => {
               <View style={styles.statIconBadgeAccent}>
                 <IndianRupee color={theme.colors.primary} size={14} />
               </View>
-              <Text style={styles.statValueAccent} numberOfLines={1}>{(user.stats.totalSpent / 1000).toFixed(1)}k</Text>
-              <Text style={styles.statLabelAccent} numberOfLines={1}>Total Spent</Text>
+              <Text style={styles.statValueAccent} numberOfLines={1}>₹{totalDiscount}</Text>
+              <Text style={styles.statLabelAccent} numberOfLines={1}>Total Discount</Text>
             </TouchableOpacity>
           </View>
 
@@ -133,11 +177,16 @@ const HomeScreen = () => {
 
           {mockTransactions.length > 0 ? (
             mockTransactions.slice(0, 3).map((txn) => (
-              <View key={txn.id} style={styles.txnCard}>
+              <TouchableOpacity 
+                key={txn.id} 
+                style={styles.txnCard}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('TransactionDetails', { transactionId: txn.id })}
+              >
                 <View style={[styles.txnHeaderRow, { width: '100%' }]}>
                   <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
                     <Text style={styles.txnStationName} numberOfLines={1}>{txn.stationName}</Text>
-                    <Text style={styles.txnTypeLabel}>{txn.fuelType}</Text>
+                    <Text style={styles.txnTypeLabel}>{txn.status.toUpperCase()}</Text>
                   </View>
                   <View style={[styles.txnStatusBadge, { flexShrink: 0 }]}>
                     <Text style={styles.txnStatusText}>{txn.status.toUpperCase()}</Text>
@@ -150,8 +199,8 @@ const HomeScreen = () => {
                     <Text style={styles.txnDetailValue}>{txn.quantity} L</Text>
                   </View>
                   <View style={styles.txnDetailCol}>
-                    <Text style={styles.txnDetailLabel}>Fuel Type</Text>
-                    <Text style={styles.txnDetailValueHighlight}>{txn.fuelType}</Text>
+                    <Text style={styles.txnDetailLabel}>Discount</Text>
+                    <Text style={styles.txnDetailValueHighlight}>₹{txn.discountAmount || 0}</Text>
                   </View>
                   <View style={[styles.txnDetailCol, { alignItems: 'flex-end' }]}>
                     <Text style={styles.txnDetailLabel}>Final Paid</Text>
@@ -163,7 +212,7 @@ const HomeScreen = () => {
                   <Text style={styles.txnFooterDate}>🕒 {txn.date} • {txn.time}</Text>
                   <Text style={styles.txnFooterId}>{txn.id} ›</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           ) : (
             <Text style={styles.emptyText}>No recent transactions</Text>
@@ -348,6 +397,36 @@ const styles = StyleSheet.create({
   sectionLinkHighlight: {
     ...theme.typography.caption,
     color: theme.colors.secondary,
+    fontWeight: 'bold',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F5F9',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: theme.spacing.md,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  filterButtonActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  filterButtonText: {
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
+    fontWeight: '500',
+  },
+  filterButtonTextActive: {
+    color: theme.colors.text,
     fontWeight: 'bold',
   },
   statsRow: {
