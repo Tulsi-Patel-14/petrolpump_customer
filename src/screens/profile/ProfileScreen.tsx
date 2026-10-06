@@ -1,20 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import AppHeader from '../../components/AppHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
-import { User, LogOut, ChevronRight, Award, Phone, Mail, Building2, CheckCircle2 } from 'lucide-react-native';
-
-const getInitials = (name: string) => {
-  if (!name) return '';
-  const names = name.trim().split(' ');
-  if (names.length >= 2) {
-    return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
-};
+import { User, LogOut, Edit, Lock, ChevronRight, Award, Phone, Mail, Building2, CheckCircle2 } from 'lucide-react-native';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuthStore();
@@ -27,20 +18,33 @@ const ProfileScreen = () => {
   return (
     <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <AppHeader title="Profile" hideNavActions showBack />
-      <View style={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.xl, flex: 1 }]}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.xl }]} bounces={false}>
 
         {/* Header Profile Card */}
         <View style={styles.card}>
           <View style={styles.header}>
             <View style={styles.avatarLargeContainer}>
               <View style={styles.avatarLarge}>
-                <Text style={styles.avatarInitials}>{getInitials(user.name)}</Text>
+                {user.profilePhoto ? (
+                  <Image source={{ uri: user.profilePhoto }} style={styles.profileImage} />
+                ) : (
+                  <User color={theme.colors.surface} size={40} />
+                )}
               </View>
-              <View style={styles.verifiedBadge}>
-                <CheckCircle2 color="#fff" fill={theme.colors.success} size={24} />
+              <View style={styles.avatarEditBadge}>
+                <CheckCircle2 color={theme.colors.success} size={20} fill={theme.colors.surface} />
               </View>
             </View>
             <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
+
+            <View style={styles.badgeRow}>
+              <View style={styles.badgeDark}>
+                <Text style={styles.badgeDarkText}>CUSTOMER</Text>
+              </View>
+              <View style={styles.badgeOutline}>
+                <Text style={styles.badgeOutlineText}>ACTIVE</Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -51,7 +55,7 @@ const ProfileScreen = () => {
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Award color="#0A344D" size={20} />
+              <Award color={theme.colors.secondary} size={20} />
             </View>
             <View style={styles.infoTextCol}>
               <Text style={styles.infoLabel}>CUSTOMER ID</Text>
@@ -59,10 +63,19 @@ const ProfileScreen = () => {
             </View>
           </View>
 
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconBox}>
+              <Building2 color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.infoTextCol}>
+              <Text style={styles.infoLabel}>PREFERRED STATION</Text>
+              <Text style={styles.infoValue}>{user.preferredStationId === 'demo-station-001' ? 'Nayara Energy - Demo Station' : user.preferredStationId}</Text>
+            </View>
+          </View>
 
           <View style={styles.infoRow}>
             <View style={styles.infoIconBox}>
-              <Phone color="#0A344D" size={20} />
+              <Phone color={theme.colors.secondary} size={20} />
             </View>
             <View style={styles.infoTextCol}>
               <Text style={styles.infoLabel}>MOBILE NUMBER</Text>
@@ -72,7 +85,7 @@ const ProfileScreen = () => {
 
           <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
             <View style={styles.infoIconBox}>
-              <Mail color="#0A344D" size={20} />
+              <Mail color={theme.colors.secondary} size={20} />
             </View>
             <View style={styles.infoTextCol}>
               <Text style={styles.infoLabel}>EMAIL ADDRESS</Text>
@@ -83,18 +96,44 @@ const ProfileScreen = () => {
 
         {/* Menu Card */}
         <View style={styles.card}>
-
-          <TouchableOpacity style={styles.menuRow} onPress={logout}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#FFEBEB' }]}>
-              <LogOut color="#FF4B4B" size={20} />
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('EditProfile')}>
+            <View style={styles.menuIconBox}>
+              <Edit color={theme.colors.secondary} size={20} />
             </View>
             <View style={styles.menuTextCol}>
-              <Text style={styles.menuRowTitle}>Sign Out</Text>
+              <Text style={styles.menuRowTitle}>Edit Profile</Text>
+              <Text style={styles.menuRowSubtitle}>Update contact information & photo</Text>
+            </View>
+            <ChevronRight color={theme.colors.textLight} size={20} />
+          </TouchableOpacity>
+
+          <View style={styles.menuDivider} />
+
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('ChangePassword')}>
+            <View style={styles.menuIconBox}>
+              <Lock color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuRowTitle}>Change Password</Text>
+              <Text style={styles.menuRowSubtitle}>Update your security credentials</Text>
+            </View>
+            <ChevronRight color={theme.colors.textLight} size={20} />
+          </TouchableOpacity>
+
+          <View style={styles.menuDivider} />
+
+          <TouchableOpacity style={styles.menuRow} onPress={logout}>
+            <View style={[styles.menuIconBox, { backgroundColor: `${theme.colors.error}15` }]}>
+              <LogOut color={theme.colors.error} size={20} />
+            </View>
+            <View style={styles.menuTextCol}>
+              <Text style={[styles.menuRowTitle, { color: theme.colors.error }]}>Sign Out</Text>
               <Text style={styles.menuRowSubtitle}>Disconnect session safely</Text>
             </View>
+            <ChevronRight color={theme.colors.textLight} size={20} />
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -105,13 +144,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   scrollContent: {
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
   },
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -122,40 +161,49 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: theme.spacing.md,
   },
   avatarLargeContainer: {
     position: 'relative',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
   },
   avatarLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#0A344D', // Dark blue background
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#D1D9E6',
   },
-  avatarInitials: {
-    color: '#32BBE7', // Cyan/bright blue text
-    fontSize: 42,
-    fontWeight: 'bold',
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
-  verifiedBadge: {
+  avatarEditBadge: {
     position: 'absolute',
     bottom: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 2,
+    right: -4,
+    backgroundColor: theme.colors.surface,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   name: {
-    ...theme.typography.h2,
-    color: '#0A344D',
+    ...theme.typography.h3,
+    color: theme.colors.primary,
     marginBottom: 4,
-    fontWeight: 'bold',
-    fontSize: 22,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   badgeDark: {
     backgroundColor: theme.colors.primary,
@@ -186,20 +234,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   cardTitle: {
-    color: '#0A344D',
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: theme.spacing.sm,
+    ...theme.typography.h3,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.md,
   },
   divider: {
     height: 1,
-    backgroundColor: '#EBEBEB',
-    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.lg,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   infoIconBox: {
     width: 44,
@@ -214,21 +261,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoLabel: {
-    color: '#9DA8B5',
-    fontSize: 11,
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginBottom: 4,
-    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   infoValue: {
-    color: '#0A344D',
-    fontSize: 15,
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    fontSize: 16,
     fontWeight: '500',
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
   },
   menuIconBox: {
     width: 44,
@@ -243,14 +291,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuRowTitle: {
-    color: '#FF4B4B', // Red
-    fontSize: 15,
+    ...theme.typography.body,
+    color: theme.colors.primary,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   menuRowSubtitle: {
-    color: '#9DA8B5',
-    fontSize: 12,
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
   },
   menuDivider: {
     height: 1,

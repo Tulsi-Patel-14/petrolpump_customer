@@ -5,51 +5,33 @@ import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import { theme } from '../../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Fuel, Phone, Lock, Hash } from 'lucide-react-native';
+import { Fuel, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const LoginScreen = () => {
   const [mobile, setMobile] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-
-  const handleSendOtp = () => {
-    if (!mobile || mobile.length !== 12) {
-      Alert.alert('Invalid Number', 'Please enter a valid 12-digit mobile number (Country Code + 10 digits)');
-      return;
-    }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setOtpSent(true);
-      // For demo purposes, we can pre-fill or just let user type 1234
-    }, 1000);
-  };
 
   const handleLogin = async (override?: string, isPending: boolean = false) => {
     if (isPending) {
       navigation.navigate('PendingApproval');
       return;
     }
-
-    if (!otp && !override) {
-      Alert.alert('Error', 'Please enter OTP');
-      return;
-    }
-
+    
     setLoading(true);
     // Passing fixed values for NFP testing
-    const success = await login(mobile || '1234567890', override || otp || '1234');
+    const success = await login(mobile || '1234567890', override || '1234');
     setLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}
+    <KeyboardAvoidingView 
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.contentContainer}>
@@ -64,49 +46,58 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.cardContainer}>
-          {!otpSent ? (
-            <AppInput
-              label="Mobile Number *"
-              placeholder="Enter 12-digit mobile number"
-              value={mobile}
-              onChangeText={(text) => setMobile(text.replace(/[^0-9]/g, ''))}
-              maxLength={12}
-              keyboardType="phone-pad"
-              leftIcon={<Phone color={theme.colors.textLight} size={20} />}
-            />
-          ) : (
-            <AppInput
-              label="Enter OTP *"
-              placeholder="4-digit OTP (e.g. 1234)"
-              value={otp}
-              onChangeText={setOtp}
-              keyboardType="number-pad"
-              secureTextEntry
-              leftIcon={<Hash color={theme.colors.textLight} size={20} />}
-            />
-          )}
+          <AppInput
+            label="Email or Mobile Number *"
+            placeholder="vikram.singh@petrolpump.com"
+            value={mobile}
+            onChangeText={setMobile}
+            leftIcon={<Mail color={theme.colors.textLight} size={20} />}
+          />
+          <AppInput
+            label="Password *"
+            placeholder="••••••••"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            leftIcon={<Lock color={theme.colors.textLight} size={20} />}
+            rightIcon={
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                {showPassword ? (
+                  <EyeOff color={theme.colors.textLight} size={20} />
+                ) : (
+                  <Eye color={theme.colors.textLight} size={20} />
+                )}
+              </TouchableOpacity>
+            }
+          />
+          
+          <TouchableOpacity style={styles.forgotPasswordContainer}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
-          {!otpSent ? (
-            <AppButton
-              title="SEND OTP"
-              onPress={handleSendOtp}
-              loading={loading}
-              style={styles.button}
-            />
-          ) : (
-            <AppButton
-              title="VERIFY & LOGIN"
-              onPress={() => handleLogin()}
-              loading={loading}
-              style={styles.button}
-            />
-          )}
+          <AppButton 
+            title="SIGN IN" 
+            onPress={() => handleLogin(password)} 
+            loading={loading}
+            style={styles.button}
+          />
 
+          <View style={styles.quickTestContainer}>
+            <Text style={styles.quickTestLabel}>QUICK TEST ACCOUNTS:</Text>
+            <View style={styles.quickTestButtons}>
+              <TouchableOpacity style={styles.testBadge} onPress={() => handleLogin('1234', false)}>
+                <Text style={styles.testBadgeText}>Active Customer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.testBadge} onPress={() => handleLogin('1234', true)}>
+                <Text style={styles.testBadgeText}>Pending Customer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <View style={[styles.registerContainer, { marginTop: 24 }]}>
             <Text style={[styles.registerText, { color: theme.colors.text }]}>
               New customer?{' '}
-              <Text
+              <Text 
                 style={styles.registerLink}
                 onPress={() => navigation.navigate('Register')}
               >
@@ -179,10 +170,39 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   button: {
-    marginTop: 16,
     marginBottom: theme.spacing.xl,
   },
-
+  quickTestContainer: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: theme.spacing.lg,
+  },
+  quickTestLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.textLight,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  quickTestButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  testBadge: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.surface,
+  },
+  testBadgeText: {
+    ...theme.typography.caption,
+    color: theme.colors.text,
+    fontWeight: '500',
+  },
   registerContainer: {
     alignItems: 'center',
     marginTop: theme.spacing.xl,

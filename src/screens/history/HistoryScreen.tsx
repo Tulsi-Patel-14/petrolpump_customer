@@ -16,6 +16,7 @@ const HistoryScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('All Time');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Basic mock filtering logic for demonstration
   const getFilteredTransactions = () => {
@@ -23,6 +24,14 @@ const HistoryScreen = () => {
     if (activeFilter === 'Today') filtered = mockTransactions.slice(0, 1);
     else if (activeFilter === 'Yesterday') filtered = mockTransactions.slice(1, 2);
     else if (activeFilter === 'This Week') filtered = mockTransactions.slice(0, 3);
+
+    if (searchQuery) {
+      filtered = filtered.filter(txn =>
+        txn.stationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        txn.fuelType.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
     return filtered;
   };
@@ -33,6 +42,16 @@ const HistoryScreen = () => {
     <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <AppHeader title="Fuel History" showBack onBackPress={() => navigation.navigate('HomeTab')} hideNotification={true} />
 
+      <View style={styles.searchContainer}>
+        <Search color={theme.colors.textLight} size={20} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by station, ID..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor={theme.colors.textLight}
+        />
+      </View>
 
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
@@ -58,8 +77,8 @@ const HistoryScreen = () => {
           <Text style={styles.emptyText}>No transactions found for {activeFilter}</Text>
         ) : (
           filteredTxns.map((txn) => (
-            <TouchableOpacity
-              key={txn.id}
+            <TouchableOpacity 
+              key={txn.id} 
               style={styles.txnCard}
               activeOpacity={0.8}
               onPress={() => navigation.navigate('TransactionDetails', { transactionId: txn.id })}
@@ -109,7 +128,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: theme.spacing.lg,
   },
-
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: theme.spacing.sm,
+    ...theme.typography.body,
+    color: theme.colors.text,
+  },
   txnCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
