@@ -12,21 +12,13 @@ const RegisterScreen = () => {
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
 
   const handleRegister = () => {
-    if (!name || !mobile || !email || !password || !confirmPassword) {
+    if (!name || !mobile) {
       Alert.alert('Error', 'Please fill in all required fields.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
       return;
     }
     setLoading(true);
@@ -68,46 +60,12 @@ const RegisterScreen = () => {
             leftIcon={<Phone color={theme.colors.textLight} size={20} />}
           />
           <AppInput
-            label="Email Address *"
+            label="Email Address"
             placeholder="e.g. customer@petrolpump.com"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             leftIcon={<Mail color={theme.colors.textLight} size={20} />}
-          />
-          <AppInput
-            label="Create Password *"
-            placeholder="Minimum 6 characters"
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            leftIcon={<Lock color={theme.colors.textLight} size={20} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                {showPassword ? (
-                  <EyeOff color={theme.colors.textLight} size={20} />
-                ) : (
-                  <Eye color={theme.colors.textLight} size={20} />
-                )}
-              </TouchableOpacity>
-            }
-          />
-          <AppInput
-            label="Confirm Password *"
-            placeholder="Re-enter password"
-            secureTextEntry={!showConfirmPassword}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            leftIcon={<Lock color={theme.colors.textLight} size={20} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                {showConfirmPassword ? (
-                  <EyeOff color={theme.colors.textLight} size={20} />
-                ) : (
-                  <Eye color={theme.colors.textLight} size={20} />
-                )}
-              </TouchableOpacity>
-            }
           />
           
           <AppButton 
