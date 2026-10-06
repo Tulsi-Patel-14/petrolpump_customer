@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { Customer } from '../types/customer';
-import { mockCustomer } from '../mock/mockCustomer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthState {
@@ -16,13 +15,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   user: null,
   login: async (mobile, otp) => {
-    // Mock login logic
-    if (otp === '1234') { // Fixed OTP for NFP
-      await AsyncStorage.setItem('userToken', 'mock-token-xyz');
-      set({ isAuthenticated: true, user: mockCustomer });
-      return true;
+    try {
+      const response = await fetch('http://192.168.1.24:5000/api/v1/customer/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile, otp })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await AsyncStorage.setItem('userToken', data.data.token);
+        set({ isAuthenticated: true, user: data.data.customer });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error(e);
+      return false;
     }
-    return false;
   },
   logout: async () => {
     await AsyncStorage.removeItem('userToken');
@@ -31,7 +40,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkSession: async () => {
     const token = await AsyncStorage.getItem('userToken');
     if (token) {
-      set({ isAuthenticated: true, user: mockCustomer });
+      try {
+        const response = await fetch('http://192.168.1.24:5000/api/v1/customer/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          set({ isAuthenticated: true, user: data.data });
+        } else {
+          set({ isAuthenticated: false, user: null });
+        }
+      } catch {
+        set({ isAuthenticated: false, user: null });
+      }
     }
   },
   updateUser: (updates) => {

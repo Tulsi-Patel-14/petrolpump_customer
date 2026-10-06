@@ -47,6 +47,7 @@ const TabNavigator = () => {
         name="QRTab"
         component={QRScreen}
         options={{
+          tabBarStyle: { display: 'none' }, // Hide bottom bar when inside QR screen
           tabBarLabel: 'QR',
           tabBarIcon: ({ focused }) => (
             <View style={[styles.floatingButton, focused && styles.floatingButtonActive, { bottom: insets.bottom > 0 ? 10 : 0 }]}>
@@ -73,6 +74,7 @@ const TabNavigator = () => {
         name="ProfileTab"
         component={ProfileScreen}
         options={{
+          tabBarStyle: { display: 'none' }, // Hide bottom bar on profile screen
           tabBarButton: () => null, // Hidden from bottom tab
           tabBarItemStyle: { display: 'none' }, // Ensure it takes 0 width
         }}

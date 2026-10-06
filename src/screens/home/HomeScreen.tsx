@@ -11,6 +11,15 @@ import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
 
 const { width } = Dimensions.get('window');
 
+const getInitials = (name: string) => {
+  if (!name) return '';
+  const names = name.trim().split(' ');
+  if (names.length >= 2) {
+    return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const HomeScreen = () => {
   const { user } = useAuthStore();
   const { loadStations } = useCustomerStore();
@@ -57,38 +66,31 @@ const HomeScreen = () => {
 
   return (
     <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <ScrollView 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]} 
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
         bounces={false}
       >
         {/* Top Header Section */}
         <View style={[styles.headerSection, { paddingTop: insets.top + theme.spacing.md }]}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity style={styles.profileAvatarContainer} onPress={() => navigation.navigate('ProfileTab')}>
-                <View style={styles.avatar}>
-                  {user.profilePhoto ? (
-                    <Image source={{ uri: user.profilePhoto }} style={styles.profileImageSmall} />
-                  ) : (
-                    <User color={theme.colors.surface} size={28} />
-                  )}
-                </View>
-                <View style={styles.editBadge}>
-                  <Edit color={theme.colors.primary} size={10} />
-                </View>
-              </TouchableOpacity>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarInitials}>{getInitials(user.name)}</Text>
+              </View>
+            </TouchableOpacity>
 
-              <View style={styles.headerInfo}>
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusText}>ACTIVE CUSTOMER</Text>
-                  <View style={styles.statusDot} />
-                </View>
-                <Text style={styles.nameText} numberOfLines={1}>{user.name}</Text>
-                <View style={styles.locationRow}>
-                  <MapPin color={theme.colors.textLight} size={14} />
-                  <Text style={styles.idText}>ID: {user.customerId}</Text>
-                </View>
+            <View style={styles.headerInfo}>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusText}>ON DUTY SHIFT</Text>
+                <View style={styles.statusDot} />
+              </View>
+              <Text style={styles.nameText} numberOfLines={1}>{user.name}</Text>
+              <View style={styles.locationRow}>
+                <MapPin color={theme.colors.textLight} size={14} />
+                <Text style={styles.idText}>ID: {user.customerId}</Text>
               </View>
             </View>
+          </View>
         </View>
 
         {/* Overlapping QR Button */}
@@ -102,11 +104,11 @@ const HomeScreen = () => {
               <QrCode color="#0A2744" size={28} />
             </View>
             <View style={styles.qrTextContent}>
-              <Text style={styles.qrButtonTitle}>GENERATE QR</Text>
-              <Text style={styles.qrButtonSubtitle}>Generate dynamic QR to authorize fueling</Text>
+              <Text style={styles.qrButtonTitle}>SCAN CUSTOMER QR</Text>
+              <Text style={styles.qrButtonSubtitle}>Scan Qr code calculate group discount</Text>
             </View>
             <View style={styles.qrArrowCircle}>
-              <ArrowRight color="#0A2744" size={20} />
+              <ArrowRight color="#0A344D" size={20} />
             </View>
           </TouchableOpacity>
         </View>
@@ -132,43 +134,37 @@ const HomeScreen = () => {
 
           <View style={styles.statsRow}>
             {/* Stat Card 1 - Dark */}
-            <TouchableOpacity
+            <View
               style={[styles.statCard, styles.statCardDark]}
-              onPress={() => navigation.navigate('HistoryTab')}
-              activeOpacity={0.8}
             >
               <View style={styles.statIconBadgeDark}>
                 <History color={theme.colors.secondary} size={14} />
               </View>
               <Text style={styles.statValueDark} numberOfLines={1} adjustsFontSizeToFit>{formatNumberCompact(totalVisits)}</Text>
               <Text style={styles.statLabelDark} numberOfLines={1}>Visits</Text>
-            </TouchableOpacity>
+            </View>
 
             {/* Stat Card 2 - Light */}
-            <TouchableOpacity
+            <View
               style={[styles.statCard, styles.statCardLight]}
-              onPress={() => navigation.navigate('HistoryTab')}
-              activeOpacity={0.8}
             >
               <View style={styles.statIconBadgeLight}>
                 <Fuel color={theme.colors.primary} size={14} />
               </View>
               <Text style={styles.statValueLight} numberOfLines={1} adjustsFontSizeToFit>{formatNumberCompact(totalFuelLiters)} L</Text>
               <Text style={styles.statLabelLight} numberOfLines={1}>Liters Fueled</Text>
-            </TouchableOpacity>
+            </View>
 
             {/* Stat Card 3 - Accent */}
-            <TouchableOpacity
+            <View
               style={[styles.statCard, styles.statCardAccent]}
-              onPress={() => navigation.navigate('HistoryTab')}
-              activeOpacity={0.8}
             >
               <View style={styles.statIconBadgeAccent}>
                 <IndianRupee color={theme.colors.primary} size={14} />
               </View>
               <Text style={styles.statValueAccent} numberOfLines={1} adjustsFontSizeToFit>{formatIndianCurrency(totalDiscount)}</Text>
               <Text style={styles.statLabelAccent} numberOfLines={1}>Total Discount</Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
           {/* Recent Redemptions */}
@@ -181,8 +177,8 @@ const HomeScreen = () => {
 
           {mockTransactions.length > 0 ? (
             mockTransactions.slice(0, 3).map((txn) => (
-              <TouchableOpacity 
-                key={txn.id} 
+              <TouchableOpacity
+                key={txn.id}
                 style={styles.txnCard}
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate('TransactionDetails', { transactionId: txn.id })}
@@ -236,7 +232,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   headerSection: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#0A344D',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     paddingHorizontal: theme.spacing.lg,
@@ -255,9 +251,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.tertiary,
+    backgroundColor: '#0A344D',
     borderWidth: 2,
-    borderColor: '#FFF',
+    borderColor: '#18A0E4',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -267,23 +263,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  profileImageSmall: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  editBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: theme.colors.secondary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
+  avatarInitials: {
+    ...theme.typography.h3,
+    color: '#18A0E4',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   headerInfo: {
     flex: 1,
@@ -295,7 +279,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     ...theme.typography.caption,
-    color: theme.colors.secondary,
+    color: '#18A0E4',
     fontWeight: 'bold',
     letterSpacing: 1,
     marginRight: 6,
@@ -305,7 +289,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.success,
+    backgroundColor: '#15C68A',
   },
   nameText: {
     ...theme.typography.h1,
@@ -330,12 +314,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   qrButtonCard: {
-    backgroundColor: '#149AEB', // Bright vibrant blue from image
+    backgroundColor: '#18A0E4', // Bright vibrant cyan from image
     borderRadius: 16, // Slightly reduced radius for slimmer look
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14, // Reduced from 16, and removed paddingVertical: 20 to reduce height
-    shadowColor: '#149AEB',
+    shadowColor: '#18A0E4',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
@@ -355,13 +339,13 @@ const styles = StyleSheet.create({
   },
   qrButtonTitle: {
     ...theme.typography.h2,
-    color: '#0A2744', // Dark blue text
+    color: '#0A344D', // Dark blue text
     fontWeight: '800',
     marginBottom: 4,
   },
   qrButtonSubtitle: {
     ...theme.typography.caption,
-    color: '#0A2744',
+    color: '#0A344D',
     opacity: 0.75, // Slightly faded dark blue
     lineHeight: 16,
     paddingRight: 10,
@@ -448,15 +432,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statCardDark: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#0A344D',
   },
   statCardLight: {
     backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
   statCardAccent: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#E6F6FB',
     borderWidth: 1,
-    borderColor: theme.colors.secondary,
+    borderColor: '#32BBE7',
   },
   statIconBadgeDark: {
     width: 28,
@@ -487,35 +473,35 @@ const styles = StyleSheet.create({
   },
   statValueDark: {
     ...theme.typography.amountLarge,
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     marginBottom: 4,
     textAlign: 'left',
   },
   statLabelDark: {
     ...theme.typography.caption,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#32BBE7',
     textAlign: 'left',
   },
   statValueLight: {
     ...theme.typography.amountLarge,
-    color: theme.colors.primary,
+    color: '#0A344D',
     marginBottom: 4,
     textAlign: 'left',
   },
   statLabelLight: {
     ...theme.typography.caption,
-    color: theme.colors.textLight,
+    color: '#9DA8B5',
     textAlign: 'left',
   },
   statValueAccent: {
     ...theme.typography.amountLarge,
-    color: theme.colors.primary,
+    color: '#0A344D',
     marginBottom: 4,
     textAlign: 'left',
   },
   statLabelAccent: {
     ...theme.typography.caption,
-    color: theme.colors.secondary,
+    color: '#18A0E4',
     textAlign: 'left',
   },
   txnCard: {

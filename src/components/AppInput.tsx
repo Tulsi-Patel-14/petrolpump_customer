@@ -13,7 +13,7 @@ const AppInput: React.FC<AppInputProps> = ({ label, error, leftIcon, rightIcon, 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>
-        {label} <Text style={{color: theme.colors.error}}>*</Text>
+        {label.replace(/\s?\*/g, '')} {label.includes('*') && <Text style={{color: theme.colors.error}}>*</Text>}
       </Text>
       <View style={[styles.inputContainer, error && styles.inputError, style]}>
         {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
