@@ -1,20 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomeScreen from '../screens/HomeScreen';
-
-const Stack = createNativeStackNavigator();
+import AuthNavigator from './AuthNavigator';
+import CustomerNavigator from './CustomerNavigator';
+import { useAuthStore } from '../store/authStore';
+import LoadingScreen from '../components/LoadingScreen';
 
 const RootNavigator = () => {
+  const { isAuthenticated, checkSession, user } = useAuthStore();
+  const [loading, setLoading] = React.useState(true);
+
+  useEffect(() => {
+    const init = async () => {
+      await checkSession();
+      setLoading(false);
+    };
+    init();
+  }, [checkSession]);
+
+  if (loading) {
+    return <LoadingScreen message="Starting FuelApp..." />;
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{ title: 'Fuel App' }}
-        />
-      </Stack.Navigator>
+      {isAuthenticated ? <CustomerNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 };
