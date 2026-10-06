@@ -117,7 +117,16 @@ const TransactionDetailsScreen = () => {
               // Simulating a real download delay
               setTimeout(() => {
                 setIsDownloading(false);
-                Alert.alert('Download Complete', `Receipt for ${transaction.id} has been saved to your device.`);
+                Alert.alert('Download Complete', `Receipt for ${transaction.id} has been saved to your device.`, [
+                  { 
+                    text: 'OK', 
+                    onPress: () => {
+                      if (route.params?.fromQR) {
+                        navigation.navigate('MainTabs', { screen: 'QRTab', params: { reset: true } });
+                      }
+                    }
+                  }
+                ]);
               }, 1500);
             }} 
             style={styles.downloadButton}
@@ -135,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F8FA',
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
   },
   errorContainer: {
     flex: 1,
@@ -149,8 +158,8 @@ const styles = StyleSheet.create({
   headerCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -192,7 +201,7 @@ const styles = StyleSheet.create({
   headerDivider: {
     height: 1,
     backgroundColor: theme.colors.border,
-    marginVertical: 16,
+    marginVertical: 8,
   },
   clockRow: {
     flexDirection: 'row',
@@ -204,18 +213,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   cardTitle: {
     color: '#154b66',
-    marginBottom: 12,
+    marginBottom: 6,
     fontSize: 16,
     fontWeight: '500',
   },
   infoCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -226,7 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
   infoLabel: {
     color: '#6e7a85',
@@ -247,7 +256,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   finalLeft: {
     justifyContent: 'center',
@@ -291,8 +300,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buttonContainer: {
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    marginTop: 4,
+    marginBottom: 16,
   },
   downloadButton: {
     width: '100%',
