@@ -12,11 +12,10 @@ import AppButton from '../../components/AppButton';
 import LoadingScreen from '../../components/LoadingScreen';
 import { theme } from '../../theme';
 import { TemporaryQR } from '../../types/qr';
+import { fetchWithAuth } from '../../services/apiClient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapPin, XCircle, CheckCircle2, AlertTriangle, Building, Fuel } from 'lucide-react-native';
-import { mockStations } from '../../mock/mockStations';
 import { Station } from '../../types/station';
-import { mockTransactions } from '../../mock/mockTransactions';
 import { Transaction } from '../../types/transaction';
 
 type LocationState = 'selecting' | 'checking' | 'inside' | 'outside' | 'error' | 'denied';
@@ -26,7 +25,7 @@ const QRScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useAuthStore();
-  const { preferredStation } = useCustomerStore();
+  const { stations, preferredStation } = useCustomerStore();
   const insets = useSafeAreaInsets();
 
   const [locationState, setLocationState] = useState<LocationState>('selecting');
@@ -40,6 +39,7 @@ const QRScreen = () => {
   // New simulation states
   const [qrStatus, setQrStatus] = useState<QRStatus>('active');
   const [completedTxnId, setCompletedTxnId] = useState<string | null>(null);
+  const [completedTxn, setCompletedTxn] = useState<any>(null);
 
   const handleSelectStation = async (station: Station) => {
     if (!user) return;
@@ -53,11 +53,17 @@ const QRScreen = () => {
 
       if (result.isInside) {
         setLocationState('inside');
-        const newQR = qrService.generateTemporaryQR(user.customerId);
-        setQrData(newQR);
-        setIsExpired(false);
-        setQrStatus('active');
-        setCompletedTxnId(null);
+        try {
+          const newQR = await qrService.generateQR();
+          setQrData({ ...newQR, issuedAt: Date.now() });
+          setIsExpired(false);
+          setQrStatus('active');
+          setCompletedTxnId(null);
+          setCompletedTxn(null);
+        } catch (e) {
+          setLocationState('error');
+          setErrorMessage('Failed to generate QR from server.');
+        }
       } else {
         setLocationState('selecting');
         setQrData(null);
@@ -93,11 +99,62 @@ const QRScreen = () => {
     return () => clearInterval(interval);
   }, [qrData, locationState, qrStatus]);
 
+  // Poll QR status from backend
+  useEffect(() => {
+    if (locationState !== 'inside' || !qrData) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const statusResponse = await qrService.checkQRStatus(qrData.token);
+        const status = typeof statusResponse === 'string' ? statusResponse : statusResponse?.status;
+        console.log('Polled QR Status:', status);
+
+        if (status === 'scanned') {
+          setQrStatus('scanned');
+        } else if (status === 'fueling') {
+          setQrStatus('fueling');
+        } else if (status === 'completed' || status === 'COMPLETED') {
+          clearInterval(interval);
+          setQrStatus('completed');
+          
+          let txnId = statusResponse?.transactionId || statusResponse?.data?.transactionId || statusResponse?.transaction?.id;
+          let txnData = statusResponse?.transaction || statusResponse?.data?.transaction;
+          
+          // If the backend didn't return the transactionId, fetch the latest transaction automatically
+          if (!txnId || !txnData) {
+            try {
+              const res = await fetchWithAuth('/transactions?filterType=ALL');
+              const txns = Array.isArray(res.data) ? res.data : (res.data?.transactions || []);
+              if (txns.length > 0) {
+                txnData = txns[0];
+                txnId = txnData.id || txnData._id;
+              }
+            } catch (err) {
+              console.error('Failed to fetch latest transaction:', err);
+            }
+          }
+
+          if (txnData) {
+            setCompletedTxn(txnData);
+          }
+          if (txnId) {
+            setCompletedTxnId(txnId);
+          }
+        }
+      } catch (e: any) {
+        console.error('QR Polling error:', e.message || e);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [qrData, locationState]);
+
   // Handle reset from navigation params
   useEffect(() => {
     if (route.params?.reset) {
       setQrStatus('active');
       setCompletedTxnId(null);
+      setCompletedTxn(null);
       setQrData(null);
       setLocationState('selecting');
       setIsExpired(false);
@@ -109,9 +166,11 @@ const QRScreen = () => {
   // Auto-reset when leaving the screen after completing a transaction
   useEffect(() => {
     const unsubscribe = navigation.addListener('blur', () => {
+      // Only reset if we actually navigated away to details or history
       if (qrStatus === 'completed' || qrStatus === 'scanned' || qrStatus === 'fueling') {
         setQrStatus('active');
         setCompletedTxnId(null);
+        setCompletedTxn(null);
         setQrData(null);
         setLocationState('selecting');
         setIsExpired(false);
@@ -122,40 +181,6 @@ const QRScreen = () => {
     return unsubscribe;
   }, [navigation, qrStatus]);
 
-  const handleSimulateScan = () => {
-    if (isExpired || qrStatus !== 'active') return;
-
-    setQrStatus('scanned');
-
-    setTimeout(() => {
-      setQrStatus('fueling');
-
-      setTimeout(() => {
-        // Generate mock transaction
-        const now = new Date();
-        const mockId = `TXN-SIM-${Math.floor(Math.random() * 10000)}`;
-        const newTxn: Transaction = {
-          id: mockId,
-          stationId: selectedStation?.id || 'demo-station-001',
-          stationName: selectedStation?.name || 'Nayara Energy',
-          date: now.toISOString().split('T')[0],
-          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          fuelType: 'Petrol',
-          quantity: 21.9,
-          amount: 2090, // Final Paid
-          fuelTotal: 2190,
-          discountAmount: 100,
-          vehicleId: 'veh-sim',
-          vehicleNumber: 'GJ01SIM000',
-          status: 'Completed'
-        };
-
-        mockTransactions.unshift(newTxn);
-        setCompletedTxnId(mockId);
-        setQrStatus('completed');
-      }, 3000);
-    }, 2000);
-  };
 
   if (!preferredStation) {
     return <LoadingScreen message="Loading station data..." />;
@@ -174,7 +199,7 @@ const QRScreen = () => {
             <Text style={styles.instructionText}>Please select a station to generate your QR code.</Text>
 
             <ScrollView style={{ width: '100%', marginTop: theme.spacing.lg }}>
-              {mockStations.map((station) => (
+              {stations.map((station) => (
                 <TouchableOpacity
                   key={station.id}
                   style={styles.stationSelectCard}
@@ -204,21 +229,31 @@ const QRScreen = () => {
               </View>
 
               <AppCard style={styles.qrCard}>
-                <Text style={styles.completedAmountText}>21.9 L Petrol</Text>
-                <View style={{ marginTop: theme.spacing.lg, alignItems: 'center' }}>
-                  <Text style={styles.completedDetailText}>Discount</Text>
-                  <Text style={styles.completedDetailValue}>₹100</Text>
-                </View>
-                <View style={{ marginTop: theme.spacing.md, alignItems: 'center' }}>
-                  <Text style={styles.completedDetailText}>Final Paid</Text>
-                  <Text style={styles.completedFinalValue}>₹2,090</Text>
-                </View>
+                {completedTxn ? (
+                  <>
+                    <Text style={styles.completedAmountText}>{(completedTxn.litres || completedTxn.quantity || 0).toLocaleString('en-IN')} L {completedTxn.fuelType || 'Fuel'}</Text>
+                    
+                    {completedTxn.discountAmount > 0 && (
+                      <View style={{ marginTop: theme.spacing.lg, alignItems: 'center' }}>
+                        <Text style={styles.completedDetailText}>Discount</Text>
+                        <Text style={styles.completedDetailValue}>₹{completedTxn.discountAmount}</Text>
+                      </View>
+                    )}
+                    
+                    <View style={{ marginTop: theme.spacing.md, alignItems: 'center' }}>
+                      <Text style={styles.completedDetailText}>Final Paid</Text>
+                      <Text style={styles.completedFinalValue}>₹{(completedTxn.finalAmount || completedTxn.amount || 0).toLocaleString('en-IN')}</Text>
+                    </View>
 
-                <AppButton
-                  title="View Transaction"
-                  onPress={() => navigation.navigate('TransactionDetails', { transactionId: completedTxnId, fromQR: true })}
-                  style={{ marginTop: theme.spacing.xl, width: '100%' }}
-                />
+                    <AppButton
+                      title="View Transaction"
+                      onPress={() => navigation.navigate('TransactionDetails', { transactionId: completedTxnId, fromQR: true })}
+                      style={{ marginTop: theme.spacing.xl, width: '100%' }}
+                    />
+                  </>
+                ) : (
+                  <LoadingScreen message="Fetching your real transaction data..." />
+                )}
               </AppCard>
             </View>
           );
@@ -315,14 +350,6 @@ const QRScreen = () => {
             )}
 
 
-            {/* NFP Simulation Button */}
-            {!isExpired && (
-              <AppButton
-                title="Simulate Attendant Scan (Mock)"
-                onPress={handleSimulateScan}
-                style={{ marginTop: theme.spacing.xl, width: '100%', backgroundColor: theme.colors.secondary }}
-              />
-            )}
           </View>
         );
 

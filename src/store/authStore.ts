@@ -1,24 +1,12 @@
 import { create } from 'zustand';
 import { Customer } from '../types/customer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const mockUser: Customer = {
-  id: 'c-001',
-  name: 'Tulsi Patel',
-  customerId: 'CUST-8392-TL',
-  mobile: '9876543210',
-  email: 'tulsi.patel@example.com',
-  activeStatus: 'active',
-  stats: {
-    totalVisits: 24,
-    totalFuelLiters: 480.5,
-    totalSpent: 45600,
-  }
-};
+import { fetchWithAuth } from '../services/apiClient';
 
 interface AuthState {
   isAuthenticated: boolean;
   user: Customer | null;
+  requestOtp: (mobile: string) => Promise<any>;
   login: (mobile: string, otp: string) => Promise<boolean>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
@@ -26,27 +14,35 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: true,
-  user: mockUser,
+  isAuthenticated: false,
+  user: null,
+  requestOtp: async (mobile) => {
+    try {
+      const response = await fetchWithAuth('/auth/request-otp', {
+        method: 'POST',
+        body: JSON.stringify({ mobile })
+      });
+      return response;
+    } catch (e: any) {
+      console.error('Request OTP API failed:', e);
+      throw e;
+    }
+  },
   login: async (mobile, otp) => {
     try {
-      const response = await fetch('http://192.168.1.24:5000/api/v1/customer/auth/login', {
+      const response = await fetchWithAuth('/auth/verify-otp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile, otp })
       });
-      const data = await response.json();
-      if (data.success) {
-        await AsyncStorage.setItem('userToken', data.data.token);
-        set({ isAuthenticated: true, user: data.data.customer });
+      if (response.success) {
+        await AsyncStorage.setItem('userToken', response.data.token);
+        set({ isAuthenticated: true, user: response.data.customer });
         return true;
       }
       return false;
-    } catch (e) {
-      console.error('Login API failed, falling back to mock user', e);
-      await AsyncStorage.setItem('userToken', 'mock-token-123');
-      set({ isAuthenticated: true, user: mockUser });
-      return true;
+    } catch (e: any) {
+      console.error('Login API failed:', e);
+      throw e;
     }
   },
   logout: async () => {
@@ -54,9 +50,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isAuthenticated: false, user: null });
   },
   checkSession: async () => {
-    // Forcefully set the mock user, completely bypassing API and old tokens for the NFP
-    await AsyncStorage.setItem('userToken', 'mock-token-123');
-    set({ isAuthenticated: true, user: mockUser });
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (token) {
+        const data = await fetchWithAuth('/profile');
+        if (data.success) {
+          console.log('PROFILE_DATA:', JSON.stringify(data));
+          set({ isAuthenticated: true, user: data.data?.customer || data.data || data.customer });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Session check API failed:', e);
+      // Clear bad/expired token so it is not retried on next app open
+      await AsyncStorage.removeItem('userToken');
+    }
+    set({ isAuthenticated: false, user: null });
   },
   updateUser: (updates) => {
     set((state) => ({

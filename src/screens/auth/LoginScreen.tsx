@@ -13,38 +13,56 @@ const LoginScreen = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuthStore();
+  const [errorMessage, setErrorMessage] = useState('');
+  const { login, requestOtp } = useAuthStore();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
 
-  const handleSendOtp = () => {
-    if (!mobile || mobile.length !== 12) {
-      Alert.alert('Invalid Number', 'Please enter a valid 12-digit mobile number (Country Code + 10 digits)');
+  const handleSendOtp = async () => {
+    setErrorMessage('');
+    if (!mobile || mobile.length !== 10) {
+      setErrorMessage('Please enter a valid 10-digit mobile number');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await requestOtp(mobile);
       setOtpSent(true);
-      // For demo purposes, we can pre-fill or just let user type 1234
-    }, 1000);
+      
+      const returnedOtp = res.data?.otp || res.otp || res.data?.data?.otp || '1234';
+      Alert.alert('Demo OTP', `Your OTP is: ${returnedOtp}`);
+    } catch (error: any) {
+      let errorMsg = error?.response?.data?.message || error?.message || (typeof error === 'string' ? error : 'Failed to send OTP.');
+      // Strip out '[Error: ...]' wrapping if the backend or Error object stringifies it that way
+      errorMsg = errorMsg.replace(/\[Error:\s*|\]/g, '').trim();
+      setErrorMessage(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (override?: string, isPending: boolean = false) => {
+    setErrorMessage('');
     if (isPending) {
       navigation.navigate('PendingApproval');
       return;
     }
 
     if (!otp && !override) {
-      Alert.alert('Error', 'Please enter OTP');
+      setErrorMessage('Please enter OTP');
       return;
     }
 
     setLoading(true);
-    // Passing fixed values for NFP testing
-    const success = await login(mobile || '1234567890', override || otp || '1234');
-    setLoading(false);
+    try {
+      await login(mobile, override || otp);
+    } catch (error: any) {
+      let errorMsg = error?.response?.data?.message || error?.message || (typeof error === 'string' ? error : 'An error occurred during login.');
+      errorMsg = errorMsg.replace(/\[Error:\s*|\]/g, '').trim();
+      setErrorMessage(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,26 +82,49 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.cardContainer}>
+          {!!errorMessage && (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          )}
+
           {!otpSent ? (
             <AppInput
               label="Mobile Number *"
-              placeholder="Enter 12-digit mobile number"
+              placeholder="Enter 10-digit mobile number"
               value={mobile}
-              onChangeText={(text) => setMobile(text.replace(/[^0-9]/g, ''))}
-              maxLength={12}
+              onChangeText={(text) => {
+                setErrorMessage('');
+                setMobile(text.replace(/[^0-9]/g, ''));
+              }}
+              maxLength={10}
               keyboardType="phone-pad"
               leftIcon={<Phone color={theme.colors.textLight} size={20} />}
             />
           ) : (
-            <AppInput
-              label="Enter OTP *"
-              placeholder="4-digit OTP (e.g. 1234)"
-              value={otp}
-              onChangeText={setOtp}
-              keyboardType="number-pad"
-              secureTextEntry
-              leftIcon={<Hash color={theme.colors.textLight} size={20} />}
-            />
+            <View>
+              <AppInput
+                label="Enter OTP *"
+                placeholder="4-digit OTP (e.g. 1234)"
+                value={otp}
+                onChangeText={(text) => {
+                  setErrorMessage('');
+                  setOtp(text);
+                }}
+                keyboardType="number-pad"
+                secureTextEntry
+                leftIcon={<Hash color={theme.colors.textLight} size={20} />}
+              />
+              <View style={styles.changeNumberContainer}>
+                <Text 
+                  style={styles.changeNumberText}
+                  onPress={() => {
+                    setOtpSent(false);
+                    setOtp('');
+                  }}
+                >
+                  Change Number?
+                </Text>
+              </View>
+            </View>
           )}
 
           {!otpSent ? (
@@ -169,6 +210,13 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  errorText: {
+    color: '#EF4444', // Red 500
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   forgotPasswordContainer: {
     alignItems: 'flex-end',
     marginTop: 8,
@@ -177,6 +225,16 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     ...theme.typography.bodySmall,
     color: theme.colors.text,
+  },
+  changeNumberContainer: {
+    alignItems: 'flex-end',
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  changeNumberText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.secondary,
+    fontWeight: 'bold',
   },
   button: {
     marginTop: 16,

@@ -1,33 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import AppHeader from '../../components/AppHeader';
 import AppCard from '../../components/AppCard';
 import StatusBadge from '../../components/StatusBadge';
 import { theme } from '../../theme';
-import { mockTransactions } from '../../mock/mockTransactions';
+import { useTransactionStore } from '../../store/transactionStore';
 import { Search } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
 
-const filters = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month'];
+const filters = ['All Time', 'Today', 'This Month', 'This Year'];
 
 const HistoryScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('All Time');
+  const { transactions, loadTransactions } = useTransactionStore();
 
-  // Basic mock filtering logic for demonstration
-  const getFilteredTransactions = () => {
-    let filtered = mockTransactions;
-    if (activeFilter === 'Today') filtered = mockTransactions.slice(0, 1);
-    else if (activeFilter === 'Yesterday') filtered = mockTransactions.slice(1, 2);
-    else if (activeFilter === 'This Week') filtered = mockTransactions.slice(0, 3);
+  useEffect(() => {
+    const filterMap: Record<string, string> = {
+      'All Time': 'ALL',
+      'Today': 'TODAY',
+      'This Month': 'THIS_MONTH',
+      'This Year': 'THIS_YEAR',
+    };
+    loadTransactions(filterMap[activeFilter] || 'ALL');
+  }, [activeFilter, loadTransactions]);
 
-    return filtered;
-  };
-
-  const filteredTxns = getFilteredTransactions();
+  const filteredTxns = transactions;
 
   return (
     <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
@@ -77,7 +78,7 @@ const HistoryScreen = () => {
               <View style={styles.txnDetailsBox}>
                 <View style={[styles.txnDetailCol, { flex: 1.2 }]}>
                   <Text style={styles.txnDetailLabel} numberOfLines={1}>Fuel Qty</Text>
-                  <Text style={styles.txnDetailValue} numberOfLines={1} adjustsFontSizeToFit>{txn.quantity.toLocaleString('en-IN')} L</Text>
+                  <Text style={styles.txnDetailValue} numberOfLines={1} adjustsFontSizeToFit>{(txn.quantity || 0).toLocaleString('en-IN')} L</Text>
                 </View>
                 <View style={[styles.txnDetailCol, { flex: 1, alignItems: 'center' }]}>
                   <Text style={styles.txnDetailLabel} numberOfLines={1}>Discount</Text>

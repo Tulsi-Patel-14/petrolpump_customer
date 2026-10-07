@@ -1,4 +1,5 @@
 import { TemporaryQR } from '../types/qr';
+import { fetchWithAuth } from './apiClient';
 
 export interface QRData {
   token: string;
@@ -8,22 +9,16 @@ export interface QRData {
 
 export const qrService = {
   generateQR: async (): Promise<QRData> => {
-    const response = await fetch('http://192.168.1.24:5000/api/v1/customer/qr/generate', {
+    const data = await fetchWithAuth('/qr/generate', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // 'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify({ stationId: 's-01', lat: 0, lng: 0 })
     });
-    const data = await response.json();
     return data.data;
   },
   
-  checkQRStatus: async (token: string): Promise<string> => {
-    const response = await fetch(`http://192.168.1.24:5000/api/v1/customer/qr/status/${token}`);
-    const data = await response.json();
-    return data.data.status;
+  checkQRStatus: async (token: string): Promise<any> => {
+    const data = await fetchWithAuth(`/qr/status/${token}`);
+    return data.data?.status || data.status || data.data || data;
   },
 
   generateTemporaryQR: (customerId: string): TemporaryQR => {

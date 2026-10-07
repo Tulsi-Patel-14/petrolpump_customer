@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import AppHeader from '../../components/AppHeader';
@@ -9,19 +9,30 @@ import { User, LogOut, ChevronRight, Award, Phone, Mail, Building2, CheckCircle2
 
 const getInitials = (name: string) => {
   if (!name) return '';
-  const names = name.trim().split(' ');
+  const names = name.trim().split(/\s+/);
   if (names.length >= 2) {
     return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return names[0][0].toUpperCase();
 };
 
 const ProfileScreen = () => {
   const { user, logout } = useAuthStore();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   if (!user) return null;
-  const insets = useSafeAreaInsets();
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
+  };
 
 
   return (
@@ -34,13 +45,13 @@ const ProfileScreen = () => {
           <View style={styles.header}>
             <View style={styles.avatarLargeContainer}>
               <View style={styles.avatarLarge}>
-                <Text style={styles.avatarInitials}>{getInitials(user.name)}</Text>
+                <Text style={styles.avatarInitials}>{getInitials(user?.fullName || user?.name || user?.firstName || 'C')}</Text>
               </View>
               <View style={styles.verifiedBadge}>
                 <CheckCircle2 color="#fff" fill={theme.colors.success} size={24} />
               </View>
             </View>
-            <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
+            <Text style={styles.name} numberOfLines={1}>{user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : null) || user?.fullName || 'Customer User'}</Text>
           </View>
         </View>
 
@@ -55,7 +66,7 @@ const ProfileScreen = () => {
             </View>
             <View style={styles.infoTextCol}>
               <Text style={styles.infoLabel}>CUSTOMER ID</Text>
-              <Text style={styles.infoValue}>{user.customerId}</Text>
+              <Text style={styles.infoValue}>{user?.customerId || user?.id || 'N/A'}</Text>
             </View>
           </View>
 
@@ -66,7 +77,7 @@ const ProfileScreen = () => {
             </View>
             <View style={styles.infoTextCol}>
               <Text style={styles.infoLabel}>MOBILE NUMBER</Text>
-              <Text style={styles.infoValue}>{user.mobile}</Text>
+              <Text style={styles.infoValue}>{user?.mobile || user?.mobileNumber || user?.phone || 'N/A'}</Text>
             </View>
           </View>
 
@@ -81,10 +92,9 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {/* Menu Card */}
         <View style={styles.card}>
 
-          <TouchableOpacity style={styles.menuRow} onPress={logout}>
+          <TouchableOpacity style={styles.menuRow} onPress={handleLogoutClick}>
             <View style={[styles.menuIconBox, { backgroundColor: '#FFEBEB' }]}>
               <LogOut color="#FF4B4B" size={20} />
             </View>
@@ -95,6 +105,48 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Custom Logout Modal */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowLogoutModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalIconBox}>
+                <LogOut color="#FF4B4B" size={28} />
+              </View>
+              <Text style={styles.modalTitle}>Sign Out of Account?</Text>
+              <Text style={styles.modalSubtitle}>
+                Logging out will securely disconnect your session. You can log back in at any time.
+              </Text>
+              
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity 
+                  style={styles.modalButtonOutline} 
+                  onPress={() => setShowLogoutModal(false)}
+                >
+                  <Text style={styles.modalButtonOutlineText}>Stay Logged In</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalButtonFilled} 
+                  onPress={handleConfirmLogout}
+                >
+                  <Text style={styles.modalButtonFilledText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -256,6 +308,78 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.colors.border,
     marginVertical: theme.spacing.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContainer: {
+    width: '100%',
+    backgroundColor: '#FFFCF5', // Creamy white matching the screenshot
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFEBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0A344D',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#6E7A8A',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 18,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  modalButtonOutline: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0A344D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  modalButtonOutlineText: {
+    color: '#0A344D',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalButtonFilled: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#FF4B4B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  modalButtonFilledText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 

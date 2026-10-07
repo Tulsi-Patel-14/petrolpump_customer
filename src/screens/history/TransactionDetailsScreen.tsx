@@ -1,22 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppHeader from '../../components/AppHeader';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { mockTransactions } from '../../mock/mockTransactions';
+import { useTransactionStore } from '../../store/transactionStore';
 import { theme } from '../../theme';
 import { Fuel, IndianRupee, MapPin, Download, Clock } from 'lucide-react-native';
 import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
 import AppButton from '../../components/AppButton';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const TransactionDetailsScreen = () => {
   const route = useRoute<any>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [isDownloading, setIsDownloading] = useState(false);
   const { transactionId } = route.params || {};
+  const { transactions, getTransactionDetails } = useTransactionStore();
+  const [transaction, setTransaction] = useState<any>(transactions.find(t => t.id === transactionId));
+  const [isLoading, setIsLoading] = useState(!transaction);
 
-  const transaction = mockTransactions.find(t => t.id === transactionId);
+  useEffect(() => {
+    if (!transaction && transactionId) {
+      setIsLoading(true);
+      getTransactionDetails(transactionId).then(data => {
+        if (data) setTransaction(data);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
+    }
+  }, [transactionId, getTransactionDetails]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <AppHeader title="Transaction Details" showBack={true} hideNavActions={true} />
+        <LoadingScreen message="Fetching transaction details..." />
+      </View>
+    );
+  }
 
   if (!transaction) {
     return (
@@ -70,7 +93,7 @@ const TransactionDetailsScreen = () => {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Fuel Quantity</Text>
-              <Text style={styles.infoValue}>{transaction.quantity.toLocaleString('en-IN')} L</Text>
+              <Text style={styles.infoValue}>{(transaction.quantity || 0).toLocaleString('en-IN')} L</Text>
             </View>
             {fuelRate && (
               <View style={styles.infoRow}>

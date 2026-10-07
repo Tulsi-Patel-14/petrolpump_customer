@@ -9,7 +9,7 @@ export const formatIndianCurrency = (amount: number): string => {
     const inK = amount / 1000;
     return `₹${Number.isInteger(inK) ? inK : inK.toFixed(1)}k`;
   }
-  return `₹${amount.toLocaleString('en-IN')}`;
+  return `₹${(amount || 0).toLocaleString('en-IN')}`;
 };
 
 export const formatNumberCompact = (num: number): string => {
@@ -19,5 +19,5 @@ export const formatNumberCompact = (num: number): string => {
     const inK = num / 1000;
     return `${Number.isInteger(inK) ? inK : inK.toFixed(1)}k`;
   }
-  return num.toLocaleString('en-IN');
+  return (num || 0).toLocaleString('en-IN');
 };
