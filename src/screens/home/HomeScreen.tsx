@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useCustomerStore } from '../../store/customerStore';
+import { useTransactionStore } from '../../store/transactionStore';
 import { theme } from '../../theme';
-import { mockTransactions } from '../../mock/mockTransactions';
 import { useNavigation } from '@react-navigation/native';
 import { User, MapPin, QrCode, ArrowRight, History, Fuel, IndianRupee, Edit } from 'lucide-react-native';
 import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
@@ -13,54 +13,42 @@ const { width } = Dimensions.get('window');
 
 const getInitials = (name: string) => {
   if (!name) return '';
-  const names = name.trim().split(' ');
+  const names = name.trim().split(/\s+/);
   if (names.length >= 2) {
     return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return names[0][0].toUpperCase();
 };
 
 const HomeScreen = () => {
   const { user } = useAuthStore();
   const { loadStations } = useCustomerStore();
+  const { dashboardSummary, loadDashboard } = useTransactionStore();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+
+  const [activeFilter, setActiveFilter] = useState<'Today' | 'This Month' | 'This Year'>('This Month');
 
   useEffect(() => {
     loadStations();
   }, [loadStations]);
 
-  const [activeFilter, setActiveFilter] = useState<'Today' | 'This Month' | 'This Year'>('This Month');
+  useEffect(() => {
+    const periodMap: Record<string, string> = {
+      'Today': 'today',
+      'This Month': 'month',
+      'This Year': 'year',
+    };
+    loadDashboard(periodMap[activeFilter] || 'month');
+  }, [activeFilter, loadDashboard]);
 
-  const currentDay = new Date().toDateString();
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
 
-  let totalVisits = 0;
-  let totalFuelLiters = 0;
-  let totalDiscount = 0;
+  const totalVisits = dashboardSummary?.totalVisits || 0;
+  const totalFuelLitersRaw = dashboardSummary?.totalFuelLiters || 0;
+  const totalFuelLiters = Math.round(totalFuelLitersRaw * 10) / 10;
+  const totalDiscount = dashboardSummary?.totalDiscount || 0;
+  const recentTransactions = dashboardSummary?.recentTransactions || [];
 
-  mockTransactions.forEach((txn) => {
-    const txnDate = new Date(txn.date);
-    let include = false;
-
-    if (activeFilter === 'Today') {
-      include = txnDate.toDateString() === currentDay;
-    } else if (activeFilter === 'This Month') {
-      include = txnDate.getMonth() === currentMonth && txnDate.getFullYear() === currentYear;
-    } else if (activeFilter === 'This Year') {
-      include = txnDate.getFullYear() === currentYear;
-    }
-
-    if (include) {
-      totalVisits += 1;
-      totalFuelLiters += txn.quantity;
-      totalDiscount += (txn.discountAmount || 0);
-    }
-  });
-
-  // Round liters to 1 decimal
-  totalFuelLiters = Math.round(totalFuelLiters * 10) / 10;
 
   if (!user) return null;
 
@@ -75,7 +63,7 @@ const HomeScreen = () => {
           <View style={styles.headerTopRow}>
             <TouchableOpacity style={styles.profileAvatarContainer} onPress={() => navigation.navigate('ProfileTab')}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarInitials}>{getInitials(user.name)}</Text>
+                <Text style={styles.avatarInitials}>{getInitials(user?.fullName || user?.name || user?.firstName || 'C')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -84,10 +72,10 @@ const HomeScreen = () => {
                 <Text style={styles.statusText}>ACTIVE MEMBER</Text>
                 <View style={styles.statusDot} />
               </View>
-              <Text style={styles.nameText} numberOfLines={1}>{user.name}</Text>
+              <Text style={styles.nameText} numberOfLines={1}>{user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : null) || user?.fullName || 'Customer User'}</Text>
               <View style={styles.locationRow}>
                 <MapPin color={theme.colors.textLight} size={14} />
-                <Text style={styles.idText}>ID: {user.customerId}</Text>
+                <Text style={styles.idText}>ID: {user?.customerId || user?.id || 'N/A'}</Text>
               </View>
             </View>
           </View>
@@ -104,8 +92,8 @@ const HomeScreen = () => {
               <QrCode color="#0A2744" size={28} />
             </View>
             <View style={styles.qrTextContent}>
-              <Text style={styles.qrButtonTitle}>SCAN CUSTOMER QR</Text>
-              <Text style={styles.qrButtonSubtitle}>Scan Qr code calculate group discount</Text>
+              <Text style={styles.qrButtonTitle}>GENERATE QR CODE</Text>
+              <Text style={styles.qrButtonSubtitle}>Generate dynamic QR to authorize fueling</Text>
             </View>
             <View style={styles.qrArrowCircle}>
               <ArrowRight color="#0A344D" size={20} />
@@ -175,8 +163,8 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {mockTransactions.length > 0 ? (
-            mockTransactions.slice(0, 3).map((txn) => (
+          {recentTransactions.length > 0 ? (
+            recentTransactions.slice(0, 3).map((txn) => (
               <TouchableOpacity
                 key={txn.id}
                 style={styles.txnCard}
@@ -196,7 +184,7 @@ const HomeScreen = () => {
                 <View style={styles.txnDetailsBox}>
                   <View style={[styles.txnDetailCol, { flex: 1.2 }]}>
                     <Text style={styles.txnDetailLabel} numberOfLines={1}>Fuel Qty</Text>
-                    <Text style={styles.txnDetailValue} numberOfLines={1} adjustsFontSizeToFit>{txn.quantity.toLocaleString('en-IN')} L</Text>
+                    <Text style={styles.txnDetailValue} numberOfLines={1} adjustsFontSizeToFit>{(txn.quantity || 0).toLocaleString('en-IN')} L</Text>
                   </View>
                   <View style={[styles.txnDetailCol, { flex: 1, alignItems: 'center' }]}>
                     <Text style={styles.txnDetailLabel} numberOfLines={1}>Discount</Text>

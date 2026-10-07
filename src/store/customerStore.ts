@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Station } from '../types/station';
-import { mockStations } from '../mock/mockStations';
+import { fetchWithAuth } from '../services/apiClient';
 
 interface CustomerState {
   stations: Station[];
@@ -9,21 +9,16 @@ interface CustomerState {
 }
 
 export const useCustomerStore = create<CustomerState>((set) => ({
-  stations: mockStations,
-  preferredStation: mockStations[0],
+  stations: [],
+  preferredStation: null,
   loadStations: async () => {
     try {
-      // Get token from authStore if needed, or assume interceptor handles it
-      const response = await fetch('http://192.168.1.24:5000/api/v1/customer/stations', {
-        // Headers handled by api client in real app, assuming simple fetch here for demo
-      });
-      const data = await response.json();
+      const data = await fetchWithAuth('/stations');
       if (data.success) {
-        set({ stations: data.data, preferredStation: data.data[0] || mockStations[0] });
+        set({ stations: data.data, preferredStation: data.data[0] || null });
       }
     } catch (e) {
-      console.error('Failed to load stations from API, falling back to mock data:', e);
-      set({ stations: mockStations, preferredStation: mockStations[0] });
+      console.error('Failed to load stations from API:', e);
     }
   },
 }));

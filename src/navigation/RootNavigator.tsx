@@ -11,8 +11,19 @@ const RootNavigator = () => {
 
   useEffect(() => {
     const init = async () => {
-      await checkSession();
-      setLoading(false);
+      try {
+        // Add a 10 second timeout so the app never hangs forever
+        await Promise.race([
+          checkSession(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Session check timed out')), 10000)
+          )
+        ]);
+      } catch (e) {
+        console.warn('Session check failed or timed out, continuing as logged out.');
+      } finally {
+        setLoading(false);
+      }
     };
     init();
   }, [checkSession]);
