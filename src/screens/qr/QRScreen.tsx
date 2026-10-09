@@ -217,6 +217,56 @@ const QRScreen = () => {
     return () => clearInterval(interval);
   }, [qrData, locationState]);
 
+  // Poll QR status from backend
+  useEffect(() => {
+    if (locationState !== 'inside' || !qrData) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const statusResponse = await qrService.checkQRStatus(qrData.token);
+        const status = typeof statusResponse === 'string' ? statusResponse : statusResponse?.status;
+        console.log('Polled QR Status:', status);
+
+        if (status === 'scanned') {
+          setQrStatus('scanned');
+        } else if (status === 'fueling') {
+          setQrStatus('fueling');
+        } else if (status === 'completed' || status === 'COMPLETED') {
+          clearInterval(interval);
+          setQrStatus('completed');
+          
+          let txnId = statusResponse?.transactionId || statusResponse?.data?.transactionId || statusResponse?.transaction?.id;
+          let txnData = statusResponse?.transaction || statusResponse?.data?.transaction;
+          
+          // If the backend didn't return the transactionId, fetch the latest transaction automatically
+          if (!txnId || !txnData) {
+            try {
+              const res = await fetchWithAuth('/transactions?filterType=ALL');
+              const txns = Array.isArray(res.data) ? res.data : (res.data?.transactions || []);
+              if (txns.length > 0) {
+                txnData = txns[0];
+                txnId = txnData.id || txnData._id;
+              }
+            } catch (err) {
+              console.error('Failed to fetch latest transaction:', err);
+            }
+          }
+
+          if (txnData) {
+            setCompletedTxn(txnData);
+          }
+          if (txnId) {
+            setCompletedTxnId(txnId);
+          }
+        }
+      } catch (e: any) {
+        console.error('QR Polling error:', e.message || e);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [qrData, locationState]);
+
   // Handle reset from navigation params
   useEffect(() => {
     if (route.params?.reset) {
