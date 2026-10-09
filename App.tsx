@@ -9,11 +9,13 @@ LogBox.ignoreLogs([
 ]);
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppToast } from './src/components/AppToast';
 
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <RootNavigator />
+      <AppToast />
     </SafeAreaProvider>
   );
 }

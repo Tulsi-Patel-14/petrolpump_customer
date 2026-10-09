@@ -1,22 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppHeader from '../../components/AppHeader';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { mockTransactions } from '../../mock/mockTransactions';
+import { useTransactionStore } from '../../store/transactionStore';
 import { theme } from '../../theme';
 import { Fuel, IndianRupee, MapPin, Download, Clock } from 'lucide-react-native';
 import { formatIndianCurrency, formatNumberCompact } from '../../utils/format';
+import { downloadReceiptPdf } from '../../utils/pdfReceiptGenerator';
+import { verifyGeofenceAndNavigate } from '../../utils/geofenceHelper';
 import AppButton from '../../components/AppButton';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const TransactionDetailsScreen = () => {
   const route = useRoute<any>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [isDownloading, setIsDownloading] = useState(false);
   const { transactionId } = route.params || {};
+  const { transactions, getTransactionDetails } = useTransactionStore();
+  const [transaction, setTransaction] = useState<any>(transactions.find(t => t.id === transactionId));
+  const [isLoading, setIsLoading] = useState(!transaction);
 
-  const transaction = mockTransactions.find(t => t.id === transactionId);
+  useEffect(() => {
+    if (!transaction && transactionId) {
+      setIsLoading(true);
+      getTransactionDetails(transactionId).then(data => {
+        if (data) setTransaction(data);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
+    }
+  }, [transactionId, getTransactionDetails]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <AppHeader title="Transaction Details" showBack={true} hideNavActions={true} />
+        <LoadingScreen message="Fetching transaction details..." />
+      </View>
+    );
+  }
 
   if (!transaction) {
     return (
@@ -29,22 +54,18 @@ const TransactionDetailsScreen = () => {
     );
   }
 
-  const fuelRate = transaction.fuelTotal && transaction.quantity 
-    ? (transaction.fuelTotal / transaction.quantity).toFixed(2) 
-    : null;
-
   return (
     <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <AppHeader title="Transaction Details" showBack={true} hideNavActions={true} />
-      
+
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
-        
+
         {/* Header section with ID and Status */}
         <View style={styles.headerCard}>
           <View style={styles.receiptIdRow}>
             <View>
               <Text style={styles.receiptLabel}>RECEIPT ID</Text>
-              <Text style={styles.idText}>{transaction.id}</Text>
+              <Text style={styles.idText}>{transaction.displayId || transaction.receiptNo || transaction.transactionId || transaction.id}</Text>
             </View>
             <View style={[styles.statusBadge, { borderColor: transaction.status === 'Completed' ? theme.colors.success : theme.colors.secondary }]}>
               <Text style={[styles.statusText, { color: transaction.status === 'Completed' ? theme.colors.success : theme.colors.secondary }]}>
@@ -57,29 +78,39 @@ const TransactionDetailsScreen = () => {
             <Clock color={theme.colors.textLight} size={14} />
             <Text style={styles.clockText}>Recorded on {transaction.date}, {transaction.time}</Text>
           </View>
-        </View>
 
-        {/* Fuel Information */}
+        </View>
+        {/* Worker / Attendant Information */}
         <View style={styles.section}>
           <View style={styles.infoCard}>
-            <Text style={styles.cardTitle}>Fuel Information</Text>
+            <Text style={styles.cardTitle}>Attendant Information</Text>
             <View style={styles.divider} />
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Fuel Type</Text>
-              <Text style={styles.infoValue}>{transaction.fuelType}</Text>
+              <Text style={styles.infoLabel}>Worker Name</Text>
+              <Text style={styles.infoValue}>{transaction.workerName || 'Pump Attendant'}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Fuel Quantity</Text>
-              <Text style={styles.infoValue}>{transaction.quantity.toLocaleString('en-IN')} L</Text>
-            </View>
-            {fuelRate && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Fuel Rate</Text>
-                <Text style={styles.infoValue}>₹{fuelRate}/L</Text>
-              </View>
-            )}
           </View>
         </View>
+
+        {/* Group & Transaction Details */}
+        <View style={styles.section}>
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Transaction Details</Text>
+            <View style={styles.divider} />
+            {transaction.groupName ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Group Name</Text>
+                <Text style={styles.infoValue}>{transaction.groupName}</Text>
+              </View>
+            ) : null}
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Discount Percent</Text>
+              <Text style={styles.infoValue}>{transaction.discountPercentage || 0}%</Text>
+            </View>
+          </View>
+        </View>
+
+
 
         {/* Discount Details */}
         <View style={styles.section}>
@@ -88,7 +119,7 @@ const TransactionDetailsScreen = () => {
             <View style={styles.divider} />
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Fuel Total</Text>
-              <Text style={styles.infoValue}>{formatIndianCurrency(transaction.fuelTotal || transaction.amount)}</Text>
+              <Text style={styles.infoValue}>{formatIndianCurrency(transaction.fuelTotal || (transaction.amount + (transaction.discountAmount || 0)))}</Text>
             </View>
             {transaction.discountAmount !== undefined && transaction.discountAmount > 0 && (
               <View style={styles.infoRow}>
@@ -109,26 +140,36 @@ const TransactionDetailsScreen = () => {
 
         {/* Download Button */}
         <View style={styles.buttonContainer}>
-          <AppButton 
-            title="Download Receipt" 
+          <AppButton
+            title="Download Receipt"
             loading={isDownloading}
-            onPress={() => {
+            onPress={async () => {
               setIsDownloading(true);
-              // Simulating a real download delay
-              setTimeout(() => {
-                setIsDownloading(false);
-                Alert.alert('Download Complete', `Receipt for ${transaction.id} has been saved to your device.`, [
-                  { 
-                    text: 'OK', 
-                    onPress: () => {
-                      if (route.params?.fromQR) {
-                        navigation.navigate('MainTabs', { screen: 'QRTab', params: { reset: true } });
+              try {
+                const targetFilePath = await downloadReceiptPdf(transaction);
+                const displayId = transaction.displayId || transaction.receiptNo || transaction.transactionId || transaction.id;
+                const fileName = `${displayId.replace(/[/\\?%*:|"<>]/g, '_')}.pdf`;
+                Alert.alert(
+                  'Receipt Saved',
+                  `Receipt for transaction ${displayId} has been successfully saved as PDF.\n\nFile: ${fileName}`,
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        if (route.params?.fromQR) {
+                          verifyGeofenceAndNavigate(navigation);
+                        }
                       }
                     }
-                  }
-                ]);
-              }, 1500);
-            }} 
+                  ]
+                );
+              } catch (err: any) {
+                console.error('Download receipt error:', err);
+                Alert.alert('Download Failed', err?.message || 'Could not generate PDF receipt. Please try again.');
+              } finally {
+                setIsDownloading(false);
+              }
+            }}
             style={styles.downloadButton}
             icon={<Download color={theme.colors.surface} size={20} />}
           />

@@ -7,31 +7,46 @@ import { theme } from '../../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fuel, Mail, Lock, Eye, EyeOff, User, Phone } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { fetchWithAuth } from '../../services/apiClient';
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
+  const [vehicle, setVehicle] = useState('');
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
 
-  const handleRegister = () => {
-    if (!name || !mobile) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+  const handleRegister = async () => {
+    if (!name || !mobile || mobile.length !== 10) {
+      Alert.alert('Error', 'Please fill in your name and a valid 10-digit mobile number.');
       return;
     }
     setLoading(true);
-    // Simulate API call for NFP
-    setTimeout(() => {
+    try {
+      await fetchWithAuth('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          fullName: name,
+          mobile: mobile,
+          email: email,
+          vehicle: vehicle
+        }),
+      });
+      Alert.alert('Success', 'Account created successfully! You can now log in.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Registration Failed', error.message || 'An error occurred during registration.');
+    } finally {
       setLoading(false);
-      navigation.navigate('PendingApproval');
-    }, 1000);
+    }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { paddingBottom: insets.bottom }]} 
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingBottom: insets.bottom }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <AppHeader title="Customer Registration" hideNavActions showBack />
@@ -39,7 +54,7 @@ const RegisterScreen = () => {
         <View style={styles.topSection}>
           <Text style={styles.title}>Join Customer Portal</Text>
           <Text style={styles.subtitle}>
-            Create your customer account. Registration requires admin approval before you can access the app.
+            Create your customer account to start generating QR codes and tracking your fueling.
           </Text>
         </View>
 
@@ -55,7 +70,8 @@ const RegisterScreen = () => {
             label="Mobile Number *"
             placeholder="e.g. 9876543210"
             value={mobile}
-            onChangeText={setMobile}
+            onChangeText={(text) => setMobile(text.replace(/[^0-9]/g, ''))}
+            maxLength={10}
             keyboardType="phone-pad"
             leftIcon={<Phone color={theme.colors.textLight} size={20} />}
           />
@@ -67,10 +83,17 @@ const RegisterScreen = () => {
             keyboardType="email-address"
             leftIcon={<Mail color={theme.colors.textLight} size={20} />}
           />
-          
-          <AppButton 
-            title="SUBMIT REGISTRATION" 
-            onPress={handleRegister} 
+          <AppInput
+            label="Vehicle Number"
+            placeholder="e.g. MH01AB1234 "
+            value={vehicle}
+            onChangeText={setVehicle}
+            leftIcon={<Fuel color={theme.colors.textLight} size={20} />}
+          />
+
+          <AppButton
+            title="SUBMIT REGISTRATION"
+            onPress={handleRegister}
             loading={loading}
             style={styles.button}
           />
@@ -79,9 +102,9 @@ const RegisterScreen = () => {
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>
             Already have an authorized account?{' '}
-            <Text 
+            <Text
               style={styles.loginLink}
-              onPress={() => navigation.goBack()}
+              onPress={() => navigation.navigate('Login')}
             >
               Sign In
             </Text>

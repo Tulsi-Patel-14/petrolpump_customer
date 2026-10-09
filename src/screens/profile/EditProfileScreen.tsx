@@ -15,9 +15,9 @@ const EditProfileScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
-  const [editName, setEditName] = useState(user?.name || '');
+  const [editName, setEditName] = useState(user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : null) || user?.fullName || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
-  const [editMobile, setEditMobile] = useState(user?.mobile || '');
+  const [editMobile, setEditMobile] = useState(user?.mobile || user?.mobileNumber || user?.phone || '');
   const [editPhoto, setEditPhoto] = useState(user?.profilePhoto || null);
 
   if (!user) return null;

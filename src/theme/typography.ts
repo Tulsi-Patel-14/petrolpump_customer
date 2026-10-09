@@ -1,56 +1,95 @@
+import { Platform } from 'react-native';
+
+const fontFamily = Platform.select({
+  ios: 'System',
+  android: 'Roboto',
+  default: 'System',
+});
+
 export const typography = {
   h1: {
-    fontSize: 24,
+    fontFamily,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '700' as const,
   },
   h2: {
-    fontSize: 20,
+    fontFamily,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '700' as const,
   },
   h3: {
-    fontSize: 16,
+    fontFamily,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '600' as const,
   },
   h4: {
-    fontSize: 14,
+    fontFamily,
+    fontSize: 16,
     fontWeight: '600' as const,
   },
+  bodyLarge: {
+    fontFamily,
+    fontSize: 17,
+    lineHeight: 25,
+    fontWeight: '400' as const,
+  },
   body: {
-    fontSize: 14,
+    fontFamily,
+    fontSize: 16,
     fontWeight: '400' as const,
   },
   bodyMedium: {
-    fontSize: 13,
-    fontWeight: '600' as const,
+    fontFamily,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '500' as const,
   },
   bodySmall: {
-    fontSize: 12,
+    fontFamily,
+    fontSize: 13,
     fontWeight: '400' as const,
   },
   caption: {
-    fontSize: 11,
-    fontWeight: '600' as const,
+    fontFamily,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '500' as const,
     letterSpacing: 0.2,
   },
   captionSmall: {
-    fontSize: 10,
+    fontFamily,
+    fontSize: 11,
     fontWeight: '500' as const,
   },
   button: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    fontFamily,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700' as const,
+  },
+  amountHero: {
+    fontFamily,
+    fontSize: 38,
+    lineHeight: 46,
+    fontWeight: '800' as const,
   },
   amountLarge: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    lineHeight: 28,
+    fontFamily,
+    fontSize: 26,
+    fontWeight: '800' as const,
+    lineHeight: 32,
   },
   amountMedium: {
-    fontSize: 16,
+    fontFamily,
+    fontSize: 18,
     fontWeight: '700' as const,
   },
   label: {
-    fontSize: 12,
+    fontFamily,
+    fontSize: 13,
     fontWeight: '600' as const,
   },
 };
