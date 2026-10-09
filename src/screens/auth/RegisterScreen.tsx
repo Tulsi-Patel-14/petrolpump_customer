@@ -84,8 +84,8 @@ const RegisterScreen = () => {
             leftIcon={<Mail color={theme.colors.textLight} size={20} />}
           />
           <AppInput
-            label="Vehicle Details"
-            placeholder="e.g. MH01AB1234 (Optional)"
+            label="Vehicle Number"
+            placeholder="e.g. MH01AB1234 "
             value={vehicle}
             onChangeText={setVehicle}
             leftIcon={<Fuel color={theme.colors.textLight} size={20} />}

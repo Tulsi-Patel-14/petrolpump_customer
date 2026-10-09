@@ -1,14 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, NativeModules } from 'react-native';
 
-// Use 192.168.1.29 for Physical Phone or 10.0.2.2 for Emulator
-const PC_IP = '192.168.1.29'; 
-const DEFAULT_URL = Platform.OS === 'android' 
-  ? `http://${PC_IP}:5000/api/v1` 
-  : 'http://localhost:5000/api/v1';
+const rawApiUrl = process.env.API_URL || 'http://localhost:5000/api/v1';
 
-export const API_BASE_URL = process.env.API_URL || DEFAULT_URL;
-export const BASE_URL = `${API_BASE_URL}/customer-app`;
+export const API_BASE_URL = rawApiUrl.replace(/\/$/, '');
+export const BASE_URL = rawApiUrl
+  ? (API_BASE_URL.endsWith('/customer-app') ? API_BASE_URL : `${API_BASE_URL}/customer-app`)
+  : '';
 
 export const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
   const token = await AsyncStorage.getItem('userToken');

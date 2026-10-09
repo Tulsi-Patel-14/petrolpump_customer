@@ -66,7 +66,9 @@ const ProfileScreen = () => {
             </View>
             <View style={styles.infoTextCol}>
               <Text style={styles.infoLabel}>CUSTOMER ID</Text>
-              <Text style={styles.infoValue}>{user?.customerId || user?.id || 'N/A'}</Text>
+              <Text style={styles.infoValue}>
+                {user?.customId || user?.displayId || (user?.customerId && !/^[0-9a-fA-F-]{24,36}$/.test(user.customerId) ? user.customerId : (user?.customerCode || user?.customCustomerId || user?.code || 'cust001'))}
+              </Text>
             </View>
           </View>
 
