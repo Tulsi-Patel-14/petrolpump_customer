@@ -77,7 +77,7 @@ const LoginScreen = () => {
           </View>
           <Text style={styles.title}>Customer Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in to generate QR codes &{'\n'}track your fueling
+            Sign in to generate QR codes &{'\n'}and get discount 
           </Text>
         </View>
 
@@ -121,7 +121,7 @@ const LoginScreen = () => {
                     setOtp('');
                   }}
                 >
-                  Change Number?
+                  Change Mobile Number ({mobile})
                 </Text>
               </View>
             </View>

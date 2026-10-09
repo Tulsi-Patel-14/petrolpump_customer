@@ -41,6 +41,7 @@ class LocationService {
 
   getCurrentLocation(): Promise<LocationResult> {
     return new Promise((resolve, reject) => {
+      // 1. Try low accuracy (network / cellular / wifi / cached location) first - fast & reliable
       Geolocation.getCurrentPosition(
         (position) => {
           resolve({
@@ -48,21 +49,53 @@ class LocationService {
             longitude: position.coords.longitude,
           });
         },
-        (error) => {
-          reject(error);
+        (firstError) => {
+          console.warn('Low accuracy location request failed, trying high accuracy GPS fallback:', firstError);
+          // 2. Fallback to high accuracy GPS
+          Geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              });
+            },
+            (secondError) => {
+              console.warn('High accuracy location request failed:', secondError);
+              if (secondError.code === 3 || secondError.message?.includes('timed out')) {
+                reject(new Error('Location request timed out. Please ensure GPS/Location service is enabled on your device.'));
+              } else {
+                reject(secondError);
+              }
+            },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+          );
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     });
   }
 
   async checkStationGeofence(station: Station): Promise<GeofenceResult> {
-    // TODO: Re-enable real geofence validation when backend/location requirements are finalized.
-    // Bypassing geofence for NFP as requested.
-    return {
-      isInside: true,
-      distanceMeters: 0,
-    };
+    const hasPermission = await this.requestLocationPermission();
+    if (!hasPermission) {
+      throw new Error('LOCATION_PERMISSION_DENIED');
+    }
+
+    const location = await this.getCurrentLocation();
+
+    const stationLat = Number(station.latitude ?? station.lat ?? 0);
+    const stationLon = Number(station.longitude ?? station.lng ?? 0);
+    const radiusMeters = Number(station.radiusMeters ?? station.radius ?? station.meterRadius ?? station.geofenceRadius ?? 100);
+
+    const result = checkGeofence(
+      location.latitude,
+      location.longitude,
+      stationLat,
+      stationLon,
+      radiusMeters
+    );
+
+    return result;
   }
 }
 

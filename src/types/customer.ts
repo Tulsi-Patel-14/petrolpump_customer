@@ -5,6 +5,11 @@ export interface Customer {
   firstName?: string;
   lastName?: string;
   customerId: string;
+  customerCode?: string;
+  customCustomerId?: string;
+  customId?: string;
+  displayId?: string;
+  code?: string;
   mobile: string;
   mobileNumber?: string;
   phone?: string;
@@ -13,6 +18,7 @@ export interface Customer {
   profilePhoto?: string;
   activeStatus: 'active' | 'inactive';
   preferredStationId?: string;
+  groupName?: string;
   stats: {
     totalVisits: number;
     totalFuelLiters: number;

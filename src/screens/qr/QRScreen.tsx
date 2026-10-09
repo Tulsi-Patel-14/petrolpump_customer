@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, ToastAndroid, Platform } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useCustomerStore } from '../../store/customerStore';
+import { showCustomToast } from '../../store/toastStore';
 import { locationService } from '../../services/locationService';
 import { qrService } from '../../services/qrService';
 import { useAuthStore } from '../../store/authStore';
@@ -14,21 +15,21 @@ import { theme } from '../../theme';
 import { TemporaryQR } from '../../types/qr';
 import { fetchWithAuth } from '../../services/apiClient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MapPin, XCircle, CheckCircle2, AlertTriangle, Building, Fuel } from 'lucide-react-native';
+import { MapPin, XCircle, CheckCircle2, AlertTriangle, Fuel, QrCode as QrIcon } from 'lucide-react-native';
 import { Station } from '../../types/station';
-import { Transaction } from '../../types/transaction';
+import { colors } from '../../theme/colors';
 
-type LocationState = 'selecting' | 'checking' | 'inside' | 'outside' | 'error' | 'denied';
+type LocationState = 'idle' | 'checking' | 'inside' | 'outside' | 'error' | 'denied';
 type QRStatus = 'active' | 'scanned' | 'fueling' | 'completed';
 
 const QRScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useAuthStore();
-  const { stations, preferredStation } = useCustomerStore();
+  const { stations, preferredStation, loadStations } = useCustomerStore();
   const insets = useSafeAreaInsets();
 
-  const [locationState, setLocationState] = useState<LocationState>('selecting');
+  const [locationState, setLocationState] = useState<LocationState>('idle');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [distance, setDistance] = useState<number>(0);
   const [qrData, setQrData] = useState<TemporaryQR | null>(null);
@@ -36,68 +37,185 @@ const QRScreen = () => {
   const [isExpired, setIsExpired] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // New simulation states
   const [qrStatus, setQrStatus] = useState<QRStatus>('active');
   const [completedTxnId, setCompletedTxnId] = useState<string | null>(null);
   const [completedTxn, setCompletedTxn] = useState<any>(null);
 
-  const handleSelectStation = async (station: Station) => {
+  // Ensure station data is loaded
+  useEffect(() => {
+    if (stations.length === 0) {
+      loadStations();
+    }
+  }, [stations.length, loadStations]);
+
+  const activeStation = selectedStation || preferredStation || stations[0] || null;
+
+  const handleGenerateQR = async () => {
     if (!user) return;
 
-    setSelectedStation(station);
+    const targetStation = activeStation;
+    if (!targetStation) {
+      setErrorMessage('Station information not available. Please try again.');
+      setLocationState('idle');
+      Alert.alert(
+        'Station Error',
+        'Station information not available. Please try again.',
+        [{ text: 'OK', onPress: () => navigation.navigate('HomeTab') }]
+      );
+      navigation.navigate('HomeTab');
+      return;
+    }
+
+    setSelectedStation(targetStation);
     setLocationState('checking');
 
     try {
-      const result = await locationService.checkStationGeofence(station);
+      const result = await locationService.checkStationGeofence(targetStation);
       setDistance(result.distanceMeters);
 
       if (result.isInside) {
-        setLocationState('inside');
         try {
           const newQR = await qrService.generateQR();
-          setQrData({ ...newQR, issuedAt: Date.now() });
+          const now = Date.now();
+          const expiresAt = newQR.expiresAt && newQR.expiresAt > now ? newQR.expiresAt : now + 60 * 1000;
+          const initialRemaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+
+          setRemainingSeconds(initialRemaining);
+          setQrData({ ...newQR, expiresAt, issuedAt: now });
           setIsExpired(false);
           setQrStatus('active');
           setCompletedTxnId(null);
           setCompletedTxn(null);
+          setLocationState('inside');
         } catch (e) {
-          setLocationState('error');
-          setErrorMessage('Failed to generate QR from server.');
+          setLocationState('idle');
+          setQrData(null);
+          Alert.alert(
+            'QR Error',
+            'Failed to generate QR from server.',
+            [{ text: 'OK', onPress: () => navigation.navigate('HomeTab') }]
+          );
+          navigation.navigate('HomeTab');
         }
       } else {
-        setLocationState('selecting');
+        setLocationState('idle');
         setQrData(null);
-        Alert.alert('Out of Geofence Area', 'You are out of the geofence area so you can not generate the QR.');
+        const msg = ' You are not at the petrol pump premises!';
+        showCustomToast(msg, 'red');
+        navigation.navigate('HomeTab');
       }
     } catch (error: any) {
-      if (error.message === 'LOCATION_PERMISSION_DENIED') {
-        setLocationState('denied');
-      } else {
-        setLocationState('error');
-        setErrorMessage(error.message || 'Unable to determine your current location.');
-      }
+      setLocationState('idle');
       setQrData(null);
+      if (error.message === 'LOCATION_PERMISSION_DENIED') {
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required to verify if you are at the petrol pump.',
+          [{ text: 'OK', onPress: () => navigation.navigate('HomeTab') }]
+        );
+      } else {
+        const msg = error.message || 'Unable to determine your current location.';
+        setErrorMessage(msg);
+        Alert.alert(
+          'Location Error',
+          msg,
+          [{ text: 'OK', onPress: () => navigation.navigate('HomeTab') }]
+        );
+      }
+      navigation.navigate('HomeTab');
     }
   };
+
+  // Auto-trigger geofence check whenever screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (activeStation && locationState === 'idle' && qrStatus !== 'completed') {
+        handleGenerateQR();
+      }
+    }, [activeStation, locationState, qrStatus])
+  );
 
   // Handle countdown and auto-refresh based on timestamp
   useEffect(() => {
     if (locationState !== 'inside' || !qrData || qrStatus !== 'active') return;
 
-    const interval = setInterval(() => {
+    const updateTimer = () => {
       const now = Date.now();
       const remaining = Math.max(0, Math.floor((qrData.expiresAt - now) / 1000));
 
       setRemainingSeconds(remaining);
 
-      if (remaining === 0) {
-        clearInterval(interval);
+      if (remaining <= 0) {
+        setQrData(null);
+        setLocationState('idle');
         setIsExpired(true);
+        setQrStatus('active');
+
+        Alert.alert(
+          'QR Expired',
+          'Your QR code has expired. Please click the button on the home page to generate QR again.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.navigate('HomeTab');
+              },
+            },
+          ]
+        );
+        navigation.navigate('HomeTab');
       }
-    }, 1000);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [qrData, locationState, qrStatus, navigation]);
+
+  // Poll QR status from backend
+  useEffect(() => {
+    if (locationState !== 'inside' || !qrData) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const statusResponse = await qrService.checkQRStatus(qrData.token);
+        const status = typeof statusResponse === 'string' ? statusResponse : statusResponse?.status;
+        console.log('Polled QR Status:', status);
+
+        if (status === 'scanned') {
+          setQrStatus('scanned');
+        } else if (status === 'fueling') {
+          setQrStatus('fueling');
+        } else if (status === 'completed' || status === 'COMPLETED') {
+          clearInterval(interval);
+          setQrStatus('completed');
+
+          let txnId = statusResponse?.transactionId || statusResponse?.data?.transactionId || statusResponse?.transaction?.id;
+          let txnData = statusResponse?.transaction || statusResponse?.data?.transaction;
+
+          if (!txnId || !txnData) {
+            try {
+              const res = await fetchWithAuth('/transactions?filterType=ALL');
+              const txns = Array.isArray(res.data) ? res.data : (res.data?.transactions || []);
+              if (txns.length > 0) {
+                txnData = txns[0];
+                txnId = txnData.id || txnData._id;
+              }
+            } catch (err) {
+              console.error('Failed to fetch latest transaction:', err);
+            }
+          }
+
+          if (txnData) setCompletedTxn(txnData);
+          if (txnId) setCompletedTxnId(txnId);
+        }
+      } catch (e: any) {
+        console.error('QR Polling error:', e.message || e);
+      }
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [qrData, locationState, qrStatus]);
+  }, [qrData, locationState]);
 
   // Poll QR status from backend
   useEffect(() => {
@@ -156,65 +274,33 @@ const QRScreen = () => {
       setCompletedTxnId(null);
       setCompletedTxn(null);
       setQrData(null);
-      setLocationState('selecting');
+      setLocationState('idle');
       setIsExpired(false);
       setRemainingSeconds(0);
       navigation.setParams({ reset: undefined });
     }
   }, [route.params?.reset]);
 
-  // Auto-reset when leaving the screen after completing a transaction
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('blur', () => {
-      // Only reset if we actually navigated away to details or history
-      if (qrStatus === 'completed' || qrStatus === 'scanned' || qrStatus === 'fueling') {
-        setQrStatus('active');
-        setCompletedTxnId(null);
-        setCompletedTxn(null);
-        setQrData(null);
-        setLocationState('selecting');
-        setIsExpired(false);
-        setRemainingSeconds(0);
-      }
-    });
+  const handleRegenerate = () => {
+    setQrStatus('active');
+    setCompletedTxnId(null);
+    setCompletedTxn(null);
+    setQrData(null);
+    setLocationState('idle');
+    setIsExpired(false);
+    setRemainingSeconds(0);
+  };
 
-    return unsubscribe;
-  }, [navigation, qrStatus]);
-
-
-  if (!preferredStation) {
-    return <LoadingScreen message="Loading station data..." />;
+  if (locationState === 'checking' || (locationState === 'idle' && qrStatus !== 'completed')) {
+    return <LoadingScreen message="Verifying your location at petrol pump..." />;
   }
 
-  if (locationState === 'checking') {
-    return <LoadingScreen message="Checking your location..." />;
-  }
+  const currentStationDisplay = activeStation;
+
+  const isChecking = (locationState as string) === 'checking';
 
   const renderContent = () => {
     switch (locationState) {
-      case 'selecting':
-        return (
-          <View style={styles.centerContainer}>
-            <Text style={styles.qrTitle}>Select Petrol Pump</Text>
-            <Text style={styles.instructionText}>Please select a station to generate your QR code.</Text>
-
-            <ScrollView style={{ width: '100%', marginTop: theme.spacing.lg }}>
-              {stations.map((station) => (
-                <TouchableOpacity
-                  key={station.id}
-                  style={styles.stationSelectCard}
-                  onPress={() => handleSelectStation(station)}
-                >
-                  <Building color={theme.colors.primary} size={24} style={{ marginRight: theme.spacing.md }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.stationSelectName}>{station.name}</Text>
-                    <Text style={styles.stationSelectDesc}>Tap to select</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        );
 
       case 'inside':
         if (qrStatus === 'completed') {
@@ -231,24 +317,31 @@ const QRScreen = () => {
               <AppCard style={styles.qrCard}>
                 {completedTxn ? (
                   <>
-                    <Text style={styles.completedAmountText}>{(completedTxn.litres || completedTxn.quantity || 0).toLocaleString('en-IN')} L {completedTxn.fuelType || 'Fuel'}</Text>
-                    
+                    <Text style={styles.completedAmountText}>{completedTxn.groupName || 'Fuel Transaction'}</Text>
+
                     {completedTxn.discountAmount > 0 && (
                       <View style={{ marginTop: theme.spacing.lg, alignItems: 'center' }}>
                         <Text style={styles.completedDetailText}>Discount</Text>
                         <Text style={styles.completedDetailValue}>₹{completedTxn.discountAmount}</Text>
                       </View>
                     )}
-                    
+
                     <View style={{ marginTop: theme.spacing.md, alignItems: 'center' }}>
                       <Text style={styles.completedDetailText}>Final Paid</Text>
                       <Text style={styles.completedFinalValue}>₹{(completedTxn.finalAmount || completedTxn.amount || 0).toLocaleString('en-IN')}</Text>
                     </View>
 
                     <AppButton
-                      title="View Transaction"
-                      onPress={() => navigation.navigate('TransactionDetails', { transactionId: completedTxnId, fromQR: true })}
+                      title="Generate New QR"
+                      onPress={handleRegenerate}
                       style={{ marginTop: theme.spacing.xl, width: '100%' }}
+                    />
+
+                    <AppButton
+                      title="View Transaction"
+                      variant="outline"
+                      onPress={() => navigation.navigate('TransactionDetails', { transactionId: completedTxnId, fromQR: true })}
+                      style={{ marginTop: theme.spacing.sm, width: '100%' }}
                     />
                   </>
                 ) : (
@@ -303,7 +396,6 @@ const QRScreen = () => {
         // Active State
         return (
           <View style={styles.centerContainer}>
-
             {isExpired ? (
               <AppCard style={styles.qrCard}>
                 <Text style={styles.qrTitle}>QR Expired</Text>
@@ -311,8 +403,8 @@ const QRScreen = () => {
                 <Text style={styles.instructionText}>Generate a new QR code to continue.</Text>
                 <View style={styles.timerContainer}>
                   <AppButton
-                    title="Generate New QR"
-                    onPress={() => selectedStation && handleSelectStation(selectedStation)}
+                    title="Return to Home"
+                    onPress={() => navigation.navigate('HomeTab')}
                   />
                 </View>
               </AppCard>
@@ -333,10 +425,10 @@ const QRScreen = () => {
 
                 <View style={styles.timerContainer}>
                   <Text style={styles.timerLabel}>Valid for</Text>
-                  <Text style={[styles.timerValue, remainingSeconds <= 10 && styles.timerWarning]}>
-                    00:{remainingSeconds.toString().padStart(2, '0')} sec
+                  <Text style={[styles.timerValue, remainingSeconds > 0 && remainingSeconds <= 10 && styles.timerWarning]}>
+                    {Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:{(remainingSeconds % 60).toString().padStart(2, '0')} sec
                   </Text>
-                  {remainingSeconds <= 10 && (
+                  {remainingSeconds > 0 && remainingSeconds <= 10 && (
                     <Text style={[styles.instructionText, { color: theme.colors.error, marginTop: 4, paddingHorizontal: 0 }]}>
                       QR expires soon
                     </Text>
@@ -348,8 +440,6 @@ const QRScreen = () => {
                 </View>
               </AppCard>
             )}
-
-
           </View>
         );
 
@@ -359,8 +449,8 @@ const QRScreen = () => {
             <View style={styles.statusBannerError}>
               <MapPin color={theme.colors.error} size={24} />
               <View style={styles.statusTextContainer}>
-                <Text style={styles.statusTitleError}>QR Unavailable</Text>
-                <Text style={styles.statusDescError}>You are outside the authorized area.</Text>
+                <Text style={styles.statusTitleError}>Not at Petrol Pump</Text>
+                <Text style={[styles.statusDescError, { color: 'red' }]}>You are not inside the petrol pump premises</Text>
               </View>
             </View>
 
@@ -369,7 +459,7 @@ const QRScreen = () => {
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Station</Text>
-                <Text style={styles.infoValue}>{selectedStation?.name}</Text>
+                <Text style={styles.infoValue}>{currentStationDisplay?.name || 'Nayara Fuel Station'}</Text>
               </View>
 
               <View style={styles.infoRow}>
@@ -381,13 +471,16 @@ const QRScreen = () => {
 
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.infoLabel}>Required Radius</Text>
-                <Text style={styles.infoValue}>{selectedStation?.radiusMeters} m</Text>
+                <Text style={styles.infoValue}>
+                  {currentStationDisplay?.radiusMeters ?? currentStationDisplay?.radius ?? 100} m
+                </Text>
               </View>
             </AppCard>
 
             <AppButton
-              title="Check Location Again"
-              onPress={() => setLocationState('selecting')}
+              title="GENERATE QR CODE"
+              loading={isChecking}
+              onPress={handleGenerateQR}
               style={styles.actionButton}
             />
           </View>
@@ -402,8 +495,9 @@ const QRScreen = () => {
               We need your location to verify that you are at the fuel station before generating your temporary Fuel QR.
             </Text>
             <AppButton
-              title="Try Again"
-              onPress={() => setLocationState('selecting')}
+              title="Grant Permission & Try Again"
+              loading={isChecking}
+              onPress={handleGenerateQR}
               style={styles.actionButton}
             />
           </View>
@@ -416,12 +510,16 @@ const QRScreen = () => {
             <Text style={styles.errorTitle}>Location Error</Text>
             <Text style={styles.errorDesc}>{errorMessage}</Text>
             <AppButton
-              title="Try Again"
-              onPress={() => setLocationState('selecting')}
+              title="GENERATE QR CODE"
+              loading={isChecking}
+              onPress={handleGenerateQR}
               style={styles.actionButton}
             />
           </View>
         );
+
+      default:
+        return null;
     }
   };
 
@@ -492,6 +590,7 @@ const styles = StyleSheet.create({
     ...theme.typography.caption,
     color: theme.colors.error,
     marginTop: 2,
+    
   },
   qrCard: {
     alignItems: 'center',
@@ -581,25 +680,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: theme.spacing.xl,
     paddingHorizontal: theme.spacing.lg,
-  },
-  stationSelectCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  stationSelectName: {
-    ...theme.typography.body,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  stationSelectDesc: {
-    ...theme.typography.caption,
-    color: theme.colors.textLight,
   },
   completedAmountText: {
     ...theme.typography.h1,
