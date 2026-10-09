@@ -13,6 +13,8 @@ import TransactionDetailsScreen from '../screens/history/TransactionDetailsScree
 import { theme } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { verifyGeofenceAndNavigate } from '../utils/geofenceHelper';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -46,6 +48,12 @@ const TabNavigator = () => {
       <Tab.Screen
         name="QRTab"
         component={QRScreen}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            verifyGeofenceAndNavigate(navigation);
+          },
+        })}
         options={{
           tabBarStyle: { display: 'none' }, // Hide bottom bar when inside QR screen
           tabBarLabel: 'QR',

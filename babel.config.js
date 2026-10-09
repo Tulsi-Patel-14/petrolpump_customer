@@ -17,8 +17,6 @@ function getEnv() {
   return env;
 }
 
-const env = getEnv();
-
 module.exports = {
   presets: ['module:@react-native/babel-preset'],
   plugins: [
@@ -27,9 +25,10 @@ module.exports = {
         visitor: {
           MemberExpression(p) {
             if (p.get('object').matchesPattern('process.env')) {
+              const currentEnv = getEnv();
               const key = p.node.property.name || p.node.property.value;
-              if (env[key] !== undefined) {
-                p.replaceWith(t.valueToNode(env[key]));
+              if (currentEnv[key] !== undefined) {
+                p.replaceWith(t.valueToNode(currentEnv[key]));
               }
             }
           }

@@ -4,4 +4,9 @@ export interface Station {
   latitude: number;
   longitude: number;
   radiusMeters: number;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  meterRadius?: number;
+  geofenceRadius?: number;
 }

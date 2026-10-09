@@ -18,14 +18,16 @@ const AppCard: React.FC<AppCardProps> = ({ children, style }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: theme.radius.md, // 12px
+    padding: theme.spacing.lg,     // 16px inner padding
+    marginBottom: theme.spacing.md,// 12px space between cards
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 2,
-    marginVertical: theme.spacing.sm,
   },
 });
 
