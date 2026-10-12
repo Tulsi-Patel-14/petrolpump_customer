@@ -8,16 +8,15 @@ export const AppToast = () => {
   if (!visible || !message) return null;
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={hideToast}
-      style={styles.toastContainer}
-      pointerEvents="box-none"
-    >
-      <View style={styles.toastCard}>
+    <View style={styles.toastContainer} pointerEvents="box-none">
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={hideToast}
+        style={styles.toastCard}
+      >
         <Text style={[styles.toastText, { color: textColor || 'red' }]}>{message}</Text>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -37,7 +36,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 1)4)',
+    borderColor: '#e2e8f0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
