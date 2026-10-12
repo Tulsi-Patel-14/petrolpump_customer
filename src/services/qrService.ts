@@ -8,10 +8,21 @@ export interface QRData {
 }
 
 export const qrService = {
-  generateQR: async (): Promise<QRData> => {
+  generateQR: async (stationId?: string, latitude?: number, longitude?: number): Promise<QRData> => {
+    const payload: Record<string, any> = {};
+    if (stationId) payload.stationId = stationId;
+    if (latitude !== undefined) {
+      payload.latitude = latitude;
+      payload.lat = latitude;
+    }
+    if (longitude !== undefined) {
+      payload.longitude = longitude;
+      payload.lng = longitude;
+    }
+
     const data = await fetchWithAuth('/qr/generate', {
       method: 'POST',
-      body: JSON.stringify({ stationId: 's-01', lat: 0, lng: 0 })
+      body: JSON.stringify(payload)
     });
     return data.data;
   },

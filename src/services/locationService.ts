@@ -11,6 +11,7 @@ export interface LocationResult {
 export interface GeofenceResult {
   isInside: boolean;
   distanceMeters: number;
+  userLocation?: LocationResult;
 }
 
 class LocationService {
@@ -95,7 +96,10 @@ class LocationService {
       radiusMeters
     );
 
-    return result;
+    return {
+      ...result,
+      userLocation: location,
+    };
   }
 }
 
