@@ -75,7 +75,7 @@ const QRScreen = () => {
 
       if (result.isInside) {
         try {
-          const newQR = await qrService.generateQR();
+          const newQR = await qrService.generateQR(targetStation.id, result.userLocation?.latitude, result.userLocation?.longitude);
           const now = Date.now();
           const expiresAt = newQR.expiresAt && newQR.expiresAt > now ? newQR.expiresAt : now + 60 * 1000;
           const initialRemaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
@@ -87,20 +87,17 @@ const QRScreen = () => {
           setCompletedTxnId(null);
           setCompletedTxn(null);
           setLocationState('inside');
-        } catch (e) {
+        } catch (e: any) {
           setLocationState('idle');
           setQrData(null);
-          Alert.alert(
-            'QR Error',
-            'Failed to generate QR from server.',
-            [{ text: 'OK', onPress: () => navigation.navigate('HomeTab') }]
-          );
+          const errorMsg = (e && e.message) ? e.message : 'Failed to generate QR from server.';
+          showCustomToast(errorMsg, 'red');
           navigation.navigate('HomeTab');
         }
       } else {
         setLocationState('idle');
         setQrData(null);
-        const msg = ' You are not at the petrol pump premises!';
+        const msg = 'You are not at the petrol pump premises!';
         showCustomToast(msg, 'red');
         navigation.navigate('HomeTab');
       }
